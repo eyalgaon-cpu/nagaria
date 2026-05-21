@@ -1,0 +1,13 @@
+{
+  "name": "נגרות אייל",
+  "short_name": "נגרות",
+  "description": "ניהול פרויקטי נגרות",
+  "start_url": "/nagaria/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "https://fav.farm/🪵", "sizes": "192x192", "type": "image/png" }
+  ]
+}
