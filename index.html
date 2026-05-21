@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="manifest" href="manifest.json">
+<title>נגרות אייל</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { font-size: 18px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #f2f0eb; color: #1a1a1a; min-height: 100vh;
+    direction: rtl; -webkit-text-size-adjust: 100%;
+  }
+
+  .header {
+    background: #1a1a1a; color: #fff;
+    padding: 16px 16px 0;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .header-title { font-size: 20px; font-weight: 700; }
+  .header-sub { font-size: 13px; color: #aaa; margin-top: 2px; }
+  .refresh-btn {
+    background: rgba(255,255,255,0.12); border: none; color: #ccc;
+    padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; min-height: 44px;
+  }
+
+  .tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex-shrink: 0; padding: 12px 16px; font-size: 15px; font-weight: 500;
+    color: #999; border: none; background: transparent;
+    border-radius: 8px 8px 0 0; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; min-height: 48px;
+  }
+  .tab:active { opacity: 0.7; }
+  .tab.active { background: #f2f0eb; color: #1a1a1a; font-weight: 700; }
+  .tab-alert { width: 8px; height: 8px; border-radius: 50%; background: #e53935; flex-shrink: 0; }
+
+  .content { padding: 14px 12px; max-width: 700px; margin: 0 auto; }
+
+  .dashboard-grid { display: flex; flex-direction: column; gap: 14px; }
+
+  .project-card {
+    background: #fff; border-radius: 16px; padding: 20px;
+    cursor: pointer; border: 2px solid transparent;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); transition: border-color 0.15s;
+  }
+  .project-card:active { border-color: #BA7517; opacity: 0.9; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .card-name { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+  .card-client { font-size: 14px; color: #666; }
+  .card-delivery { font-size: 13px; color: #888; margin: 8px 0; }
+
+  .status-badge { font-size: 13px; padding: 5px 12px; border-radius: 20px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .status-active   { background: #e8f5e9; color: #2e7d32; }
+  .status-planning { background: #e3f2fd; color: #1565c0; }
+  .status-done     { background: #f5f5f5; color: #555; }
+
+  .progress-wrap { margin-bottom: 10px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: #888; margin-bottom: 6px; }
+  .progress-label strong { color: #1a1a1a; font-size: 14px; }
+  .progress-bar-bg { height: 7px; background: #e8e6e0; border-radius: 4px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .fill-amber { background: #BA7517; }
+  .fill-green { background: #43a047; }
+
+  .alert-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .alert-chip {
+    font-size: 13px; padding: 8px 10px; border-radius: 8px;
+    background: #fff3e0; color: #e65100;
+    display: flex; justify-content: space-between; align-items: center; gap: 6px; line-height: 1.5;
+  }
+  .alert-chip.red { background: #ffebee; color: #c62828; }
+  .alert-del-btn {
+    background: none; border: none; font-size: 20px; cursor: pointer;
+    color: inherit; opacity: 0.6; flex-shrink: 0; padding: 0 0 0 6px; line-height: 1;
+  }
+  .alert-del-btn:hover { opacity: 1; }
+
+  .project-header {
+    background: #fff; border-radius: 16px; padding: 18px;
+    margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .proj-title-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .proj-title   { font-size: 22px; font-weight: 700; }
+  .proj-client  { font-size: 15px; color: #555; margin-top: 3px; }
+  .proj-delivery{ font-size: 13px; color: #888; margin-top: 4px; }
+  .proj-pct     { font-size: 16px; font-weight: 700; color: #BA7517; }
+
+  .steps-legend {
+    background: #e8e6e0; border-radius: 10px; padding: 10px 14px;
+    display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 12px; font-size: 13px;
+  }
+  .legend-label { color: #777; margin-left: 4px; width: 100%; }
+  .legend-step { padding: 4px 10px; border-radius: 6px; border: 1.5px solid #ccc; background: #fff; color: #555; font-size: 13px; }
+
+  .space-card {
+    background: #fff; border-radius: 16px; padding: 16px;
+    margin-bottom: 10px; border: 2px solid transparent;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .space-card.has-note { border-color: #ff8f00; }
+  .space-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .space-name   { font-size: 17px; font-weight: 700; }
+  .space-finish { font-size: 13px; color: #777; margin-top: 3px; }
+  .space-pct    { font-size: 15px; font-weight: 600; color: #888; }
+  .space-pct.done { color: #43a047; }
+
+  .steps-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .step-btn {
+    padding: 10px 16px; font-size: 14px; border-radius: 8px;
+    border: 2px solid #ddd; background: transparent; color: #888;
+    cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 4px;
+    font-family: inherit; min-height: 44px; transition: all 0.12s;
+  }
+  .step-btn:active { transform: scale(0.93); }
+  .step-btn.done          { border-color: transparent; background: #fff8e1; color: #BA7517; font-weight: 700; }
+  .step-btn.done-assembly { border-color: transparent; background: #e8f5e9; color: #2e7d32; font-weight: 700; }
+  .step-date { font-size: 11px; opacity: 0.75; }
+
+  .note-area {
+    width: 100%; border-radius: 8px; border: 2px solid #e0e0e0;
+    background: #fafafa; color: #333; padding: 10px 12px;
+    font-size: 15px; font-family: inherit; direction: rtl;
+    resize: vertical; min-height: 50px; outline: none;
+    transition: border-color 0.15s, background 0.15s; line-height: 1.5;
+  }
+  .note-area:focus { border-color: #BA7517; background: #fff; }
+  .note-area.has-content { border-color: #ff8f00; background: #fff8e1; color: #e65100; }
+
+  .loader {
+    display: flex; align-items: center; justify-content: center;
+    height: 250px; flex-direction: column; gap: 14px; color: #888; font-size: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid #e0e0e0;
+    border-top-color: #BA7517; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .snackbar {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #1a1a1a; color: #fff; padding: 12px 24px;
+    border-radius: 10px; font-size: 15px;
+    transition: transform 0.25s ease; z-index: 999;
+    pointer-events: none; white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .snackbar.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">🪵 נגרות אייל</div>
+      <div class="header-sub" id="last-update">טוען נתונים...</div>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">רענן ↺</button>
+  </div>
+  <div class="tabs" id="tabs-container"></div>
+</div>
+
+<div class="content" id="main-content">
+  <div class="loader"><div class="spinner"></div>טוען פרויקטים...</div>
+</div>
+
+<div class="snackbar" id="snackbar"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbyZkdn7n9ZYNCR0UXpgRMt5oaS9dAJUvh66FWwHw0HYH5M4hS61penR1rnbQ4C-x6wN/exec';
+const KEY = 'nagaria-ayal-2026';
+
+const STEPS = [
+  {key:'planning',label:'Pytha'},
+  {key:'mpr',    label:'MPR'},
+  {key:'cnc',    label:'CNC'},
+  {key:'edges',  label:'קנטים'},
+  {key:'fronts', label:'לצבעי'},
+  {key:'assembly',label:'הרכבה'},
+];
+
+let projects = [];
+let currentProjectId = null;
+
+async function api(payload) {
+  try {
+    const res = await fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({key:KEY, ...payload})
+    });
+    return await res.json();
+  } catch(e) { return {success:false}; }
+}
+
+async function loadData() {
+  document.getElementById('last-update').textContent = 'מתחבר...';
+  const r = await api({action:'getData'});
+  if (r.success && r.data) {
+    projects = r.data;
+    renderTabs();
+    renderView();
+    const now = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('last-update').textContent = 'עודכן ' + now;
+  } else {
+    document.getElementById('main-content').innerHTML =
+      '<div class="loader" style="color:#c62828">⚠ שגיאה בטעינה<br><small>לחץ רענן לנסות שוב</small></div>';
+    document.getElementById('last-update').textContent = 'שגיאה';
+  }
+}
+
+function renderTabs() {
+  const container = document.getElementById('tabs-container');
+  const tabs = [{id:null,name:'הכל',alerts:[]}].concat(projects);
+  container.innerHTML = tabs.map(p => {
+    const isActive = currentProjectId === (p.id || null);
+    const hasAlert = p.alerts && p.alerts.length > 0;
+    return `<button class="tab ${isActive?'active':''}" onclick="switchTo(${p.id?'"'+p.id+'"':'null'})">
+      ${hasAlert?'<span class="tab-alert"></span>':''}${p.name}
+    </button>`;
+  }).join('');
+}
+
+function switchTo(id) {
+  currentProjectId = (id==='null'||id===null) ? null : id;
+  renderTabs(); renderView(); window.scrollTo(0,0);
+}
+
+function renderView() {
+  if (!currentProjectId) renderDashboard();
+  else { const p = projects.find(p=>p.id===currentProjectId); if(p) renderProject(p); }
+}
+
+const spacePct = sp => {
+  const d = STEPS.filter(s=>s.key==='fronts'?!!sp.steps[s.key]:sp.steps[s.key]===true).length;
+  return Math.round(d/STEPS.length*100);
+};
+const projPct = pr => !pr.spaces.length ? 0 : Math.round(pr.spaces.reduce((a,s)=>a+spacePct(s),0)/pr.spaces.length);
+const fmtDate = d => { try { return new Date(d).toLocaleDateString('he-IL',{day:'numeric',month:'long'}); } catch(e){return d;} };
+const stInfo = s => ({
+  active:  {label:'בייצור', cls:'status-active'},
+  planning:{label:'בתכנון', cls:'status-planning'},
+  done:    {label:'הושלם',  cls:'status-done'},
+}[s] || {label:'בייצור',cls:'status-active'});
+
+function renderDashboard() {
+  document.getElementById('main-content').innerHTML =
+    '<div class="dashboard-grid">' +
+    projects.map(p => {
+      const pct=projPct(p), st=stInfo(p.status);
+      const alerts = p.alerts.map(a=>`<div class="alert-chip"><span>⚠ ${esc(a)}</span></div>`).join('');
+      return `<div class="project-card" onclick="switchTo('${p.id}')">
+        <div class="card-top">
+          <div><div class="card-name">${esc(p.name)}</div><div class="card-client">${esc(p.client)}</div></div>
+          <span class="status-badge ${st.cls}">${st.label}</span>
+        </div>
+        ${p.delivery?`<div class="card-delivery">📅 ${fmtDate(p.delivery)}</div>`:''}
+        <div class="progress-wrap">
+          <div class="progress-label"><span>התקדמות</span><strong>${pct}%</strong></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill ${pct>=66?'fill-green':'fill-amber'}" style="width:${pct}%"></div></div>
+        </div>
+        ${alerts?`<div class="alert-list">${alerts}</div>`:''}
+        <div style="font-size:13px;color:#aaa;margin-top:10px">${p.spaces.length} חללים →</div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function renderProject(proj) {
+  const pct=projPct(proj), st=stInfo(proj.status);
+  const alerts = proj.alerts.map(a=>`
+    <div class="alert-chip red">
+      <span>⚠ ${esc(a)}</span>
+      <button class="alert-del-btn" onclick="deleteAlert('${proj.id}','${esc(a)}')">×</button>
+    </div>`).join('');
+  const legend = STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
+  const spaceCards = proj.spaces.map(space => {
+    const spPct=spacePct(space), hasNote=!!(space.notes&&space.notes.trim());
+    const stepBtns = STEPS.map(s => {
+      const done = s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
+      const cls  = done?(s.key==='assembly'?'done-assembly':'done'):'';
+      const dt   = s.key==='fronts'&&space.steps.fronts
+        ?`<span class="step-date">(${String(space.steps.fronts).slice(5).replace('-','/')})</span>`:'';
+      return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
+        ${done?'✓ ':''}${s.label}${dt}</button>`;
+    }).join('');
+    return `<div class="space-card ${hasNote?'has-note':''}" id="card-${space.id}">
+      <div class="space-header">
+        <div><div class="space-name">${esc(space.name)}</div><div class="space-finish">${esc(space.finish)}</div></div>
+        <div class="space-pct ${spPct===100?'done':''}">${spPct===100?'✓ הושלם':spPct+'%'}</div>
+      </div>
+      <div class="steps-row">${stepBtns}</div>
+      <textarea class="note-area ${hasNote?'has-content':''}"
+        placeholder="הערות / תקלות / חוסרים..." rows="${hasNote?2:1}"
+        onchange="saveNote('${proj.id}','${space.id}',this)"
+        oninput="this.className='note-area'+(this.value.trim()?' has-content':'')"
+      >${esc(space.notes)}</textarea>
+    </div>`;
+  }).join('');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="project-header">
+      <div class="proj-title-row">
+        <div>
+          <div class="proj-title">${esc(proj.name)}</div>
+          <div class="proj-client">${esc(proj.client)}</div>
+          ${proj.delivery?`<div class="proj-delivery">📅 מסירה: ${fmtDate(proj.delivery)}</div>`:''}
+        </div>
+        <div style="text-align:left">
+          <span class="status-badge ${st.cls}">${st.label}</span>
+          <div class="proj-pct" style="margin-top:6px">${pct}%</div>
+        </div>
+      </div>
+      <div class="progress-bar-bg" style="margin-top:10px">
+        <div class="progress-bar-fill ${pct>=66?'fill-green':'fill-amber'}" style="width:${pct}%"></div>
+      </div>
+      ${alerts?`<div class="alert-list" style="margin-top:12px">${alerts}</div>`:''}
+    </div>
+    <div class="steps-legend"><span class="legend-label">לחץ שלב כדי לסמן ✓</span>${legend}</div>
+    ${spaceCards}`;
+}
+
+async function toggleStep(projectId, spaceId, stepKey, currentlyDone) {
+  const proj  = projects.find(p=>p.id===projectId);
+  const space = proj?.spaces.find(s=>s.id===spaceId);
+  if (!space) return;
+  const newVal = stepKey==='fronts' ? (currentlyDone?'':new Date().toISOString().slice(0,10)) : !currentlyDone;
+  space.steps[stepKey] = newVal;
+  renderProject(proj);
+  const r = await api({action:'updateStep', projectId, spaceId, stepKey, value:newVal});
+  showSnack(r.success ? '✓ נשמר' : '⚠ שגיאה בשמירה');
+}
+
+async function saveNote(projectId, spaceId, ta) {
+  const note = ta.value;
+  const proj = projects.find(p=>p.id===projectId);
+  if (proj) { const sp=proj.spaces.find(s=>s.id===spaceId); if(sp) sp.notes=note; }
+  const card = document.getElementById('card-'+spaceId);
+  if (card) card.className = 'space-card'+(note.trim()?' has-note':'');
+  const r = await api({action:'updateNote', projectId, spaceId, note});
+  showSnack(r.success ? '✓ הערה נשמרה' : '⚠ שגיאה');
+}
+
+async function deleteAlert(projectId, alertText) {
+  if (!confirm('למחוק את ההתראה?')) return;
+  const proj = projects.find(p=>p.id===projectId);
+  if (proj) proj.alerts = proj.alerts.filter(a=>a!==alertText);
+  renderProject(proj);
+  const r = await api({action:'removeAlert', projectId, alertText});
+  showSnack(r.success ? '✓ התראה נמחקה' : '⚠ שגיאה');
+}
+
+function showSnack(msg) {
+  const el = document.getElementById('snackbar');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadData();
+</script>
+</body>
+</html>
