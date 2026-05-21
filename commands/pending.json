@@ -1,1 +1,1 @@
-{"key": "nagaria-ayal-2026", "action": "removeAlert", "projectId": "hatikvah", "alertText": "שרטוטים של נעה טרם עודכנו"}
+{"key": "nagaria-ayal-2026", "action": "updateStep", "projectId": "zeitlin", "spaceId": "all-rooms", "stepKey": "cnc", "value": true}
