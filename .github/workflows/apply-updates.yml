@@ -14,9 +14,14 @@ jobs:
         run: |
           CMD=$(cat commands/pending.json)
           HAS=$(echo "$CMD" | python3 -c "import sys,json; d=json.load(sys.stdin); print('yes' if 'action' in d else 'no')" 2>/dev/null || echo 'no')
+          echo "Has action: $HAS"
           if [ "$HAS" = "yes" ]; then
             echo "Calling Apps Script..."
-            curl -s -L -X POST "$APPS_SCRIPT_URL" -H "Content-Type: text/plain" -d "$CMD"
+            RESULT=$(curl -s -L -X POST \
+              "https://script.google.com/macros/s/AKfycbyZkdn7n9ZYNCR0UXpgRMt5oaS9dAJUvh66FWwHw0HYH5M4hS61penR1rnbQ4C-x6wN/exec" \
+              -H "Content-Type: text/plain" \
+              -d "$CMD")
+            echo "Result: $RESULT"
             echo '{"status":"done"}' > commands/pending.json
             git config user.name "מאיה"
             git config user.email "maya@nagaria.app"
@@ -24,5 +29,3 @@ jobs:
             git commit -m "clear [skip ci]"
             git push
           fi
-        env:
-          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
