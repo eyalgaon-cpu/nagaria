@@ -12,21 +12,26 @@ if "action" not in cmd:
 
 print(f"Running: {cmd.get('action')} on {cmd.get('projectId','?')}")
 
-data = json.dumps(cmd).encode("utf-8")
-req = urllib.request.Request(APPS_URL, data=data,
-    headers={"Content-Type":"text/plain"})
-req.get_method = lambda: "POST"
+# Handle POST redirects properly
+class PostRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        data = req.data
+        new_req = urllib.request.Request(newurl, data=data, method="POST")
+        new_req.add_header("Content-Type", "text/plain")
+        return new_req
 
+data = json.dumps(cmd, ensure_ascii=False).encode("utf-8")
+req = urllib.request.Request(APPS_URL, data=data, method="POST")
+req.add_header("Content-Type", "text/plain")
+
+opener = urllib.request.build_opener(PostRedirectHandler)
 try:
-    import urllib.request as ur
-    # Follow redirects manually
-    resp = ur.urlopen(req)
+    resp = opener.open(req)
     result = resp.read().decode("utf-8")
     print(f"Result: {result}")
 except Exception as e:
     print(f"Error: {e}")
 
-# Reset commands file
 with open("commands/pending.json","w",encoding="utf-8") as f:
     json.dump({"status":"done"},f)
 
