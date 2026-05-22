@@ -46,7 +46,6 @@
   .tab-alert { width: 8px; height: 8px; border-radius: 50%; background: #e53935; flex-shrink: 0; }
 
   .content { padding: 14px 12px; max-width: 700px; margin: 0 auto; }
-
   .dashboard-grid { display: flex; flex-direction: column; gap: 14px; }
 
   .project-card {
@@ -103,17 +102,51 @@
   .legend-label { color: #777; margin-left: 4px; width: 100%; }
   .legend-step { padding: 4px 10px; border-radius: 6px; border: 1.5px solid #ccc; background: #fff; color: #555; font-size: 13px; }
 
-  .space-card {
+  .furniture-card {
     background: #fff; border-radius: 16px; padding: 16px;
     margin-bottom: 10px; border: 2px solid transparent;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
-  .space-card.has-note { border-color: #ff8f00; }
-  .space-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .space-name   { font-size: 17px; font-weight: 700; }
-  .space-finish { font-size: 13px; color: #777; margin-top: 3px; }
-  .space-pct    { font-size: 15px; font-weight: 600; color: #888; }
-  .space-pct.done { color: #43a047; }
+  .furniture-card.has-note { border-color: #ff8f00; }
+  .furniture-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px; }
+  .furniture-title-area { flex: 1; }
+  .furniture-num  { font-size: 12px; color: #aaa; font-weight: 600; margin-bottom: 2px; }
+  .furniture-name { font-size: 17px; font-weight: 700; }
+  .furniture-finish { font-size: 13px; color: #777; margin-top: 3px; }
+  .furniture-pct  { font-size: 15px; font-weight: 600; color: #888; white-space: nowrap; }
+  .furniture-pct.done { color: #43a047; }
+
+  .furniture-actions { display: flex; gap: 6px; align-items: center; }
+  .edit-btn {
+    background: #f5f5f5; border: none; border-radius: 8px;
+    padding: 6px 10px; font-size: 13px; cursor: pointer; color: #666;
+    min-height: 36px; white-space: nowrap;
+  }
+  .edit-btn:active { opacity: 0.7; }
+
+  /* Edit modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: #fff; border-radius: 20px; padding: 24px;
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-label { font-size: 13px; color: #666; margin-bottom: 6px; display: block; }
+  .modal-input {
+    width: 100%; border: 2px solid #e0e0e0; border-radius: 8px;
+    padding: 10px 12px; font-size: 16px; font-family: inherit;
+    direction: rtl; outline: none;
+  }
+  .modal-input:focus { border-color: #BA7517; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-save { flex: 1; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .modal-cancel { flex: 1; background: #f0f0f0; color: #333; border: none; border-radius: 10px; padding: 14px; font-size: 16px; cursor: pointer; font-family: inherit; }
 
   .steps-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
   .step-btn {
@@ -136,6 +169,18 @@
   }
   .note-area:focus { border-color: #BA7517; background: #fff; }
   .note-area.has-content { border-color: #ff8f00; background: #fff8e1; color: #e65100; }
+
+  /* Add alert row */
+  .add-alert-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-alert-input {
+    flex: 1; border: 2px solid #e0e0e0; border-radius: 8px;
+    padding: 10px 12px; font-size: 14px; font-family: inherit; direction: rtl; outline: none;
+  }
+  .add-alert-input:focus { border-color: #BA7517; }
+  .add-alert-btn {
+    background: #BA7517; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 14px; font-size: 14px; cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
 
   .loader {
     display: flex; align-items: center; justify-content: center;
@@ -177,6 +222,29 @@
   <div class="loader"><div class="spinner"></div>טוען פרויקטים...</div>
 </div>
 
+<!-- Edit modal -->
+<div class="modal-overlay hidden" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-title">עריכת רהיט</div>
+    <div class="modal-field">
+      <label class="modal-label">מספר פריט (נ-1, נ-3 וכו')</label>
+      <input class="modal-input" id="edit-num" type="text" placeholder="נ-1">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">שם הרהיט</label>
+      <input class="modal-input" id="edit-name" type="text" placeholder="מטבח">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">גמר</label>
+      <input class="modal-input" id="edit-finish" type="text" placeholder="פורניר אשה">
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeEditModal()">ביטול</button>
+      <button class="modal-save" onclick="saveEdit()">שמור</button>
+    </div>
+  </div>
+</div>
+
 <div class="snackbar" id="snackbar"></div>
 
 <script>
@@ -184,16 +252,17 @@ const API = 'https://script.google.com/macros/s/AKfycbyZkdn7n9ZYNCR0UXpgRMt5oaS9
 const KEY = 'nagaria-ayal-2026';
 
 const STEPS = [
-  {key:'planning',label:'Pytha'},
-  {key:'mpr',    label:'MPR'},
-  {key:'cnc',    label:'CNC'},
-  {key:'edges',  label:'קנטים'},
-  {key:'fronts', label:'לצבעי'},
-  {key:'assembly',label:'הרכבה'},
+  {key:'planning', label:'Pytha'},
+  {key:'mpr',      label:'MPR'},
+  {key:'cnc',      label:'CNC'},
+  {key:'edges',    label:'קנטים'},
+  {key:'fronts',   label:'לצבעי'},
+  {key:'assembly', label:'הרכבה'},
 ];
 
 let projects = [];
 let currentProjectId = null;
+let editContext = null; // {projectId, spaceId}
 
 async function api(payload) {
   try {
@@ -244,11 +313,11 @@ function renderView() {
   else { const p = projects.find(p=>p.id===currentProjectId); if(p) renderProject(p); }
 }
 
-const spacePct = sp => {
+const furniturePct = sp => {
   const d = STEPS.filter(s=>s.key==='fronts'?!!sp.steps[s.key]:sp.steps[s.key]===true).length;
   return Math.round(d/STEPS.length*100);
 };
-const projPct = pr => !pr.spaces.length ? 0 : Math.round(pr.spaces.reduce((a,s)=>a+spacePct(s),0)/pr.spaces.length);
+const projPct = pr => !pr.spaces.length ? 0 : Math.round(pr.spaces.reduce((a,s)=>a+furniturePct(s),0)/pr.spaces.length);
 const fmtDate = d => { try { return new Date(d).toLocaleDateString('he-IL',{day:'numeric',month:'long'}); } catch(e){return d;} };
 const stInfo = s => ({
   active:  {label:'בייצור', cls:'status-active'},
@@ -273,7 +342,7 @@ function renderDashboard() {
           <div class="progress-bar-bg"><div class="progress-bar-fill ${pct>=66?'fill-green':'fill-amber'}" style="width:${pct}%"></div></div>
         </div>
         ${alerts?`<div class="alert-list">${alerts}</div>`:''}
-        <div style="font-size:13px;color:#aaa;margin-top:10px">${p.spaces.length} חללים →</div>
+        <div style="font-size:13px;color:#aaa;margin-top:10px">${p.spaces.length} רהיטים →</div>
       </div>`;
     }).join('') + '</div>';
 }
@@ -286,8 +355,9 @@ function renderProject(proj) {
       <button class="alert-del-btn" onclick="deleteAlert('${proj.id}','${esc(a)}')">×</button>
     </div>`).join('');
   const legend = STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
-  const spaceCards = proj.spaces.map(space => {
-    const spPct=spacePct(space), hasNote=!!(space.notes&&space.notes.trim());
+
+  const furnitureCards = proj.spaces.map(space => {
+    const spPct=furniturePct(space), hasNote=!!(space.notes&&space.notes.trim());
     const stepBtns = STEPS.map(s => {
       const done = s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
       const cls  = done?(s.key==='assembly'?'done-assembly':'done'):'';
@@ -296,10 +366,18 @@ function renderProject(proj) {
       return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
         ${done?'✓ ':''}${s.label}${dt}</button>`;
     }).join('');
-    return `<div class="space-card ${hasNote?'has-note':''}" id="card-${space.id}">
-      <div class="space-header">
-        <div><div class="space-name">${esc(space.name)}</div><div class="space-finish">${esc(space.finish)}</div></div>
-        <div class="space-pct ${spPct===100?'done':''}">${spPct===100?'✓ הושלם':spPct+'%'}</div>
+
+    return `<div class="furniture-card ${hasNote?'has-note':''}" id="card-${space.id}">
+      <div class="furniture-header">
+        <div class="furniture-title-area">
+          <div class="furniture-num">${esc(space.itemNum||'')}</div>
+          <div class="furniture-name">${esc(space.name)}</div>
+          <div class="furniture-finish">${esc(space.finish||'')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div class="furniture-pct ${spPct===100?'done':''}">${spPct===100?'✓ הושלם':spPct+'%'}</div>
+          <button class="edit-btn" onclick="openEditModal('${proj.id}','${space.id}')">✏️ עריכה</button>
+        </div>
       </div>
       <div class="steps-row">${stepBtns}</div>
       <textarea class="note-area ${hasNote?'has-content':''}"
@@ -327,9 +405,49 @@ function renderProject(proj) {
         <div class="progress-bar-fill ${pct>=66?'fill-green':'fill-amber'}" style="width:${pct}%"></div>
       </div>
       ${alerts?`<div class="alert-list" style="margin-top:12px">${alerts}</div>`:''}
+      <div class="add-alert-row">
+        <input class="add-alert-input" id="new-alert-${proj.id}" type="text" placeholder="הוסף התראה חדשה...">
+        <button class="add-alert-btn" onclick="addAlert('${proj.id}')">+ הוסף</button>
+      </div>
     </div>
     <div class="steps-legend"><span class="legend-label">לחץ שלב כדי לסמן ✓</span>${legend}</div>
-    ${spaceCards}`;
+    ${furnitureCards}`;
+}
+
+// Edit modal
+function openEditModal(projectId, spaceId) {
+  const proj  = projects.find(p=>p.id===projectId);
+  const space = proj?.spaces.find(s=>s.id===spaceId);
+  if (!space) return;
+  editContext = {projectId, spaceId};
+  document.getElementById('edit-num').value    = space.itemNum  || '';
+  document.getElementById('edit-name').value   = space.name    || '';
+  document.getElementById('edit-finish').value = space.finish  || '';
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.add('hidden');
+  editContext = null;
+}
+
+async function saveEdit() {
+  if (!editContext) return;
+  const {projectId, spaceId} = editContext;
+  const proj  = projects.find(p=>p.id===projectId);
+  const space = proj?.spaces.find(s=>s.id===spaceId);
+  if (!space) return;
+
+  space.itemNum = document.getElementById('edit-num').value.trim();
+  space.name    = document.getElementById('edit-name').value.trim();
+  space.finish  = document.getElementById('edit-finish').value.trim();
+
+  closeEditModal();
+  renderProject(proj);
+
+  const r = await api({action:'updateSpaceInfo', projectId, spaceId,
+    itemNum: space.itemNum, name: space.name, finish: space.finish});
+  showSnack(r.success ? '✓ נשמר' : '⚠ שגיאה בשמירה');
 }
 
 async function toggleStep(projectId, spaceId, stepKey, currentlyDone) {
@@ -348,7 +466,7 @@ async function saveNote(projectId, spaceId, ta) {
   const proj = projects.find(p=>p.id===projectId);
   if (proj) { const sp=proj.spaces.find(s=>s.id===spaceId); if(sp) sp.notes=note; }
   const card = document.getElementById('card-'+spaceId);
-  if (card) card.className = 'space-card'+(note.trim()?' has-note':'');
+  if (card) card.className = 'furniture-card'+(note.trim()?' has-note':'');
   const r = await api({action:'updateNote', projectId, spaceId, note});
   showSnack(r.success ? '✓ הערה נשמרה' : '⚠ שגיאה');
 }
@@ -360,6 +478,19 @@ async function deleteAlert(projectId, alertText) {
   renderProject(proj);
   const r = await api({action:'removeAlert', projectId, alertText});
   showSnack(r.success ? '✓ התראה נמחקה' : '⚠ שגיאה');
+}
+
+async function addAlert(projectId) {
+  const input = document.getElementById('new-alert-'+projectId);
+  const text = input.value.trim();
+  if (!text) return;
+  const proj = projects.find(p=>p.id===projectId);
+  if (!proj) return;
+  proj.alerts.push(text);
+  input.value = '';
+  renderProject(proj);
+  const r = await api({action:'addAlert', projectId, alertText:text});
+  showSnack(r.success ? '✓ התראה נוספה' : '⚠ שגיאה');
 }
 
 function showSnack(msg) {
