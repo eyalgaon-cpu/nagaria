@@ -204,6 +204,38 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+
+  /* ===== מסך כספים ===== */
+  .fin-screen { display: none; }
+  .fin-screen.active { display: block; }
+  .fin-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .fin-sec { font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 12px; }
+  .fin-proj-seg { display: flex; border: 1.5px solid #ddd; border-radius: 8px; overflow: hidden; flex-wrap: wrap; margin-bottom: 0; }
+  .fin-proj-btn { flex:1; padding:8px 6px; font-size:13px; border:none; border-left:1.5px solid #ddd; background:transparent; color:#888; cursor:pointer; font-family:inherit; white-space:nowrap; text-align:center; min-height:40px; }
+  .fin-proj-btn:last-child { border-left:none; }
+  .fin-proj-btn.active { background:#1a1a1a; color:#fff; }
+
+  .fin-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f0ede8; font-size:14px; }
+  .fin-row:last-child { border-bottom:none; }
+  .fin-row-label { color:#555; flex:1; }
+  .fin-row-val { font-weight:600; color:#1a1a1a; }
+  .fin-row-sub { font-size:12px; color:#aaa; }
+
+  .fin-summary-box { background:#f8f6f0; border-radius:12px; padding:14px; margin-bottom:14px; }
+  .fin-summary-title { font-size:13px; color:#888; margin-bottom:6px; }
+  .fin-summary-amount { font-size:24px; font-weight:700; }
+  .fin-summary-amount.positive { color:#2e7d32; }
+  .fin-summary-amount.negative { color:#c62828; }
+  .fin-summary-vat { font-size:13px; color:#888; margin-top:4px; }
+
+  .fin-add-row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .fin-input { flex:1; min-width:80px; border:2px solid #e0e0e0; border-radius:8px; padding:8px 10px; font-size:14px; font-family:inherit; direction:rtl; outline:none; }
+  .fin-input:focus { border-color:#BA7517; }
+  .fin-add-btn { background:#BA7517; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:14px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .fin-del-btn { background:none; border:none; cursor:pointer; color:#ccc; font-size:18px; padding:0 4px; line-height:1; }
+  .fin-del-btn:active { color:#e53935; }
+  .fin-vat-row { display:flex; justify-content:space-between; font-size:12px; color:#aaa; margin-top:2px; }
+
   .snackbar {
     position: fixed; bottom: 80px; left: 50%;
     transform: translateX(-50%) translateY(100px);
@@ -463,6 +495,70 @@
   </div>
 </div>
 
+
+<!-- מסך כספים -->
+<div class="content fin-screen" id="fin-screen">
+  <div class="fin-card">
+    <div class="fin-sec">פרויקט</div>
+    <div class="fin-proj-seg" id="fin-proj-seg"></div>
+  </div>
+
+  <div class="fin-card" id="fin-quote-card">
+    <div class="fin-sec">הצעת מחיר</div>
+    <div class="fin-row">
+      <span class="fin-row-label">סכום הצעה מקורית</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" id="fin-base" placeholder="0" style="width:110px;text-align:left;padding:6px 8px;font-size:14px;border:2px solid #e0e0e0;border-radius:8px;font-family:inherit;outline:none;" oninput="finCalc()">
+        <span style="font-size:13px;color:#aaa">₪</span>
+      </div>
+    </div>
+    <div class="fin-vat-row" id="fin-base-vat"></div>
+
+    <div style="margin-top:14px;">
+      <div class="fin-sec">תוספות</div>
+      <div id="fin-extras-list"></div>
+      <div class="fin-add-row">
+        <input class="fin-input" id="fin-extra-desc" placeholder="תיאור התוספת">
+        <input type="number" class="fin-input" id="fin-extra-amt" placeholder="סכום ₪" style="max-width:100px;text-align:left;">
+        <button class="fin-add-btn" onclick="finAddExtra()">+ הוסף</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="fin-sec">תשלומים שהתקבלו</div>
+    <div id="fin-payments-list"></div>
+    <div class="fin-add-row">
+      <input class="fin-input" id="fin-pay-desc" placeholder="הערה (מקדמה, תשלום ביניים...)">
+      <input type="number" class="fin-input" id="fin-pay-amt" placeholder="סכום ₪" style="max-width:100px;text-align:left;">
+      <input type="date" class="fin-input" id="fin-pay-date" style="max-width:130px;">
+      <button class="fin-add-btn" onclick="finAddPayment()">+ הוסף</button>
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="fin-sec">סיכום</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="fin-summary-box">
+        <div class="fin-summary-title">סה"כ לגבייה (לפני מע"מ)</div>
+        <div class="fin-summary-amount" id="fin-total-pre">0 ₪</div>
+        <div class="fin-summary-vat" id="fin-total-vat">כולל מע"מ: 0 ₪</div>
+      </div>
+      <div class="fin-summary-box">
+        <div class="fin-summary-title">שולם עד כה</div>
+        <div class="fin-summary-amount positive" id="fin-paid">0 ₪</div>
+        <div class="fin-summary-vat" id="fin-paid-vat">כולל מע"מ: 0 ₪</div>
+      </div>
+    </div>
+    <div class="fin-summary-box" style="background:#fff8e1;">
+      <div class="fin-summary-title">יתרת חוב (לפני מע"מ)</div>
+      <div class="fin-summary-amount" id="fin-balance" style="color:#BA7517;">0 ₪</div>
+      <div class="fin-summary-vat" id="fin-balance-vat">כולל מע"מ: 0 ₪</div>
+    </div>
+    <button class="hw-save-btn" onclick="finSave()" style="margin-top:8px;">💾 שמור נתונים</button>
+  </div>
+</div>
+
 <div class="snackbar" id="snackbar"></div>
 
 <!-- ניווט תחתון -->
@@ -474,6 +570,10 @@
   <button class="bnav-btn" id="bnav-hardware" onclick="switchScreen('hardware')">
     <span class="bnav-icon">🔩</span>
     פרזול
+  </button>
+  <button class="bnav-btn" id="bnav-finance" onclick="switchScreen('finance')">
+    <span class="bnav-icon">💰</span>
+    כספים
   </button>
 </nav>
 
@@ -523,11 +623,16 @@ function switchScreen(screen) {
   currentScreen = screen;
   document.getElementById('main-content').style.display = screen==='production' ? '' : 'none';
   document.getElementById('hw-screen').classList.toggle('active', screen==='hardware');
+  document.getElementById('fin-screen').classList.toggle('active', screen==='finance');
   document.getElementById('bnav-production').classList.toggle('active', screen==='production');
   document.getElementById('bnav-hardware').classList.toggle('active', screen==='hardware');
+  document.getElementById('bnav-finance').classList.toggle('active', screen==='finance');
   document.getElementById('tabs-container').parentElement.style.display = screen==='production' ? '' : 'none';
   if (screen==='hardware' && !hwProjectId && projects.length) {
     hwSelectProject(projects[0].id);
+  }
+  if (screen==='finance' && !finProjectId && projects.length) {
+    finSelectProject(projects[0].id);
   }
 }
 
@@ -547,6 +652,7 @@ async function loadData() {
     renderTabs();
     renderView();
     hwBuildProjSeg();
+    finBuildProjSeg();
     const now = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('last-update').textContent = 'עודכן ' + now;
   } else {
@@ -1067,6 +1173,141 @@ function hwCopy(){
 function escHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 loadData();
+
+// ===== כספים =====
+const VAT = 0.18;
+let finProjectId = null;
+let finData = {}; // {projectId: {base, extras:[{desc,amt}], payments:[{desc,amt,date}]}}
+
+function finBuildProjSeg() {
+  const seg = document.getElementById('fin-proj-seg');
+  if(!seg) return;
+  seg.innerHTML = projects.map((p,i) =>
+    `<button class="fin-proj-btn ${i===0?'active':''}" onclick="finSelectProject('${p.id}',this)">${p.name}</button>`
+  ).join('');
+  if(projects.length) finSelectProject(projects[0].id);
+}
+
+async function finSelectProject(id, el) {
+  finProjectId = id;
+  if(el){
+    document.querySelectorAll('#fin-proj-seg .fin-proj-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  if(!finData[id]) {
+    const r = await api({action:'getFinance', projectId:id});
+    if(r.success && r.data) finData[id] = r.data;
+    else finData[id] = {base:0, extras:[], payments:[]};
+  }
+  finRender();
+}
+
+function finRender() {
+  const d = finData[finProjectId] || {base:0,extras:[],payments:[]};
+  document.getElementById('fin-base').value = d.base || '';
+
+  const vat = v => Math.round(v * (1+VAT));
+  const fmt = v => Number(v).toLocaleString('he-IL') + ' ₪';
+
+  // base vat
+  document.getElementById('fin-base-vat').textContent = d.base ? `כולל מע"מ: ${fmt(vat(d.base))}` : '';
+
+  // extras
+  const extEl = document.getElementById('fin-extras-list');
+  extEl.innerHTML = (d.extras||[]).map((e,i) => `
+    <div class="fin-row">
+      <span class="fin-row-label">${esc(e.desc)}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="text-align:left">
+          <div class="fin-row-val">${fmt(e.amt)}</div>
+          <div class="fin-row-sub">כולל מע"מ: ${fmt(vat(e.amt))}</div>
+        </div>
+        <button class="fin-del-btn" onclick="finDelExtra(${i})">×</button>
+      </div>
+    </div>`).join('');
+
+  // payments
+  const payEl = document.getElementById('fin-payments-list');
+  payEl.innerHTML = (d.payments||[]).map((p,i) => `
+    <div class="fin-row">
+      <span class="fin-row-label">${esc(p.desc)} ${p.date?'<span class="fin-row-sub">('+p.date+')</span>':''}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="fin-row-val">${fmt(p.amt)}</div>
+        <button class="fin-del-btn" onclick="finDelPayment(${i})">×</button>
+      </div>
+    </div>`).join('');
+
+  finCalc();
+}
+
+function finCalc() {
+  const d = finData[finProjectId] || {base:0,extras:[],payments:[]};
+  const base = parseFloat(document.getElementById('fin-base')?.value)||0;
+  const extrasTotal = (d.extras||[]).reduce((s,e)=>s+parseFloat(e.amt||0),0);
+  const paidTotal = (d.payments||[]).reduce((s,p)=>s+parseFloat(p.amt||0),0);
+  const total = base + extrasTotal;
+  const balance = total - paidTotal;
+  const vat = v => Math.round(v*(1+VAT));
+  const fmt = v => Number(Math.round(v)).toLocaleString('he-IL') + ' ₪';
+
+  const totalPre = document.getElementById('fin-total-pre');
+  const totalVat = document.getElementById('fin-total-vat');
+  const paidEl = document.getElementById('fin-paid');
+  const paidVat = document.getElementById('fin-paid-vat');
+  const balEl = document.getElementById('fin-balance');
+  const balVat = document.getElementById('fin-balance-vat');
+  const baseVat = document.getElementById('fin-base-vat');
+
+  if(totalPre) totalPre.textContent = fmt(total);
+  if(totalVat) totalVat.textContent = `כולל מע"מ: ${fmt(vat(total))}`;
+  if(paidEl) paidEl.textContent = fmt(paidTotal);
+  if(paidVat) paidVat.textContent = `כולל מע"מ: ${fmt(vat(paidTotal))}`;
+  if(balEl) { balEl.textContent = fmt(balance); balEl.style.color = balance>0?'#BA7517':'#2e7d32'; }
+  if(balVat) balVat.textContent = `כולל מע"מ: ${fmt(vat(balance))}`;
+  if(baseVat && base) baseVat.textContent = `כולל מע"מ: ${fmt(vat(base))}`;
+}
+
+function finAddExtra() {
+  const desc = document.getElementById('fin-extra-desc').value.trim();
+  const amt = parseFloat(document.getElementById('fin-extra-amt').value)||0;
+  if(!desc||!amt) return;
+  if(!finData[finProjectId]) finData[finProjectId]={base:0,extras:[],payments:[]};
+  finData[finProjectId].extras.push({desc,amt});
+  document.getElementById('fin-extra-desc').value='';
+  document.getElementById('fin-extra-amt').value='';
+  finRender();
+}
+
+function finDelExtra(i) {
+  finData[finProjectId].extras.splice(i,1);
+  finRender();
+}
+
+function finAddPayment() {
+  const desc = document.getElementById('fin-pay-desc').value.trim();
+  const amt = parseFloat(document.getElementById('fin-pay-amt').value)||0;
+  const date = document.getElementById('fin-pay-date').value;
+  if(!amt) return;
+  if(!finData[finProjectId]) finData[finProjectId]={base:0,extras:[],payments:[]};
+  finData[finProjectId].payments.push({desc:desc||'תשלום',amt,date});
+  document.getElementById('fin-pay-desc').value='';
+  document.getElementById('fin-pay-amt').value='';
+  document.getElementById('fin-pay-date').value='';
+  finRender();
+}
+
+function finDelPayment(i) {
+  finData[finProjectId].payments.splice(i,1);
+  finRender();
+}
+
+async function finSave() {
+  const base = parseFloat(document.getElementById('fin-base')?.value)||0;
+  finData[finProjectId].base = base;
+  const r = await api({action:'saveFinance', projectId:finProjectId, finData:finData[finProjectId]});
+  showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
+}
+
 </script>
 </body>
 </html>
