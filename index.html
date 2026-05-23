@@ -109,6 +109,18 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
   .furniture-card.has-note { border-color: #ff8f00; }
+  .furniture-card.urgent { border-color: #e53935; }
+  .furniture-card.urgent.has-note { border-color: #e53935; }
+
+  .phase-header {
+    display: flex; align-items: center; gap: 10px;
+    margin: 16px 0 8px; padding: 8px 12px;
+    background: #1a1a1a; border-radius: 10px; color: #fff;
+  }
+  .phase-header-label { font-size: 14px; font-weight: 700; flex: 1; }
+  .phase-header-note { font-size: 12px; color: #aaa; }
+  .urgent-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #ffebee; color: #c62828; font-weight: 700; }
+  .phase-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #e3f2fd; color: #1565c0; font-weight: 600; }
   .furniture-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px; }
   .furniture-title-area { flex: 1; }
   .furniture-num  { font-size: 12px; color: #aaa; font-weight: 600; margin-bottom: 2px; }
@@ -427,6 +439,23 @@
       <label class="modal-label">גמר</label>
       <input class="modal-input" id="edit-finish" type="text" placeholder="פורניר אשה">
     </div>
+    <div class="modal-field">
+      <label class="modal-label">שלב אספקה</label>
+      <select class="modal-input" id="edit-phase">
+        <option value="">ללא שלב</option>
+        <option value="1">שלב 1</option>
+        <option value="2">שלב 2</option>
+        <option value="3">שלב 3</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">הערת שלב (תאריך יעד, הערה חופשית)</label>
+      <input class="modal-input" id="edit-phase-note" type="text" placeholder="למשל: יעד 7.6.26">
+    </div>
+    <div class="modal-field" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="edit-urgent" style="width:22px;height:22px;accent-color:#e53935;cursor:pointer;">
+      <label class="modal-label" for="edit-urgent" style="margin:0;cursor:pointer;color:#c62828;font-weight:600">⚡ דחוף</label>
+    </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeEditModal()">ביטול</button>
       <button class="modal-save" onclick="saveEdit()">שמור</button>
@@ -591,8 +620,10 @@ function renderProject(proj) {
       <button class="alert-del-btn" onclick="deleteAlert('${proj.id}','${esc(a)}')">×</button>
     </div>`).join('');
   const legend=STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
-  const furnitureCards=proj.spaces.map(space=>{
+
+  const makeCard = space => {
     const spPct=furniturePct(space),hasNote=!!(space.notes&&space.notes.trim());
+    const isUrgent=!!(space.urgent);
     const stepBtns=STEPS.map(s=>{
       const done=s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
       const cls=done?(s.key==='assembly'?'done-assembly':'done'):'';
@@ -601,10 +632,10 @@ function renderProject(proj) {
       return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
         ${done?'✓ ':''}${s.label}${dt}</button>`;
     }).join('');
-    return `<div class="furniture-card ${hasNote?'has-note':''}" id="card-${space.id}">
+    return `<div class="furniture-card ${hasNote?'has-note':''} ${isUrgent?'urgent':''}" id="card-${space.id}">
       <div class="furniture-header">
         <div class="furniture-title-area">
-          <div class="furniture-num">${esc(space.itemNum||'')}</div>
+          <div class="furniture-num">${esc(space.itemNum||'')} ${isUrgent?'<span class="urgent-badge">⚡ דחוף</span>':''}</div>
           <div class="furniture-name">${esc(space.name)}</div>
           <div class="furniture-finish">${esc(space.finish||'')}</div>
         </div>
@@ -620,7 +651,26 @@ function renderProject(proj) {
         oninput="this.className='note-area'+(this.value.trim()?' has-content':'')"
       >${esc(space.notes)}</textarea>
     </div>`;
-  }).join('');
+  };
+
+  // קיבוץ לפי שלב
+  const phaseLabels = {'1':'שלב 1','2':'שלב 2','3':'שלב 3'};
+  const grouped = {'1':[],'2':[],'3':[],'':[]};
+  proj.spaces.forEach(s => grouped[s.phase||''].push(s));
+
+  let furnitureCards = '';
+  ['1','2','3',''].forEach(phase => {
+    const spaces = grouped[phase];
+    if(!spaces.length) return;
+    if(phase) {
+      const note = spaces.find(s=>s.phaseNote)?.phaseNote || '';
+      furnitureCards += `<div class="phase-header">
+        <span class="phase-header-label">${phaseLabels[phase]}</span>
+        ${note?`<span class="phase-header-note">${esc(note)}</span>`:''}
+      </div>`;
+    }
+    furnitureCards += spaces.map(makeCard).join('');
+  });
   document.getElementById('main-content').innerHTML=`
     <div class="project-header">
       <div class="proj-title-row">
@@ -655,6 +705,9 @@ function openEditModal(projectId,spaceId) {
   document.getElementById('edit-num').value=space.itemNum||'';
   document.getElementById('edit-name').value=space.name||'';
   document.getElementById('edit-finish').value=space.finish||'';
+  document.getElementById('edit-phase').value=space.phase||'';
+  document.getElementById('edit-phase-note').value=space.phaseNote||'';
+  document.getElementById('edit-urgent').checked=!!(space.urgent);
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 function closeEditModal(){document.getElementById('edit-modal').classList.add('hidden');editContext=null;}
@@ -668,8 +721,11 @@ async function saveEdit() {
   space.itemNum=document.getElementById('edit-num').value.trim();
   space.name=document.getElementById('edit-name').value.trim();
   space.finish=document.getElementById('edit-finish').value.trim();
+  space.phase=document.getElementById('edit-phase').value;
+  space.phaseNote=document.getElementById('edit-phase-note').value.trim();
+  space.urgent=document.getElementById('edit-urgent').checked;
   closeEditModal();renderProject(proj);
-  const r=await api({action:'updateSpaceInfo',projectId,spaceId,itemNum:space.itemNum,name:space.name,finish:space.finish});
+  const r=await api({action:'updateSpaceInfo',projectId,spaceId,itemNum:space.itemNum,name:space.name,finish:space.finish,phase:space.phase,phaseNote:space.phaseNote,urgent:space.urgent});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
 
