@@ -727,7 +727,7 @@ function hwBuildProjSeg() {
   if(projects.length)hwSelectProject(projects[0].id);
 }
 
-function hwSelectProject(id, el) {
+async function hwSelectProject(id, el) {
   hwSaveFurnitureIfDirty();
   hwProjectId=id;
   hwCurrentFurnId=null;
@@ -738,6 +738,12 @@ function hwSelectProject(id, el) {
   const proj=projects.find(p=>p.id===id);
   hwFurnList=proj?proj.spaces.map(s=>({id:s.id,code:s.itemNum||'',name:s.name})):[];
   document.getElementById('hw-editor').style.display='none';
+  if(!hwData[id]){
+    showSnack('טוען פרזול...');
+    const r=await api({action:'getHardware',projectId:id});
+    if(r.success&&r.data) hwData[id]=r.data;
+    else hwData[id]={};
+  }
   hwRenderFurnList();
   if(hwSubTab==='summary')hwRenderSummaryTab();
 }
@@ -788,9 +794,9 @@ function hwLoadFurnData(id) {
   hwAddRow();
 }
 
-function hwSaveFurnitureIfDirty(){if(hwCurrentFurnId)hwSaveFurnitureData();}
+function hwSaveFurnitureIfDirty(){if(hwCurrentFurnId)hwSaveFurnitureLocal();}
 
-function hwSaveFurnitureData() {
+function hwSaveFurnitureLocal() {
   if(!hwCurrentFurnId)return;
   if(!hwData[hwProjectId])hwData[hwProjectId]={};
   const rows=hwCollectRows();
@@ -801,10 +807,13 @@ function hwSaveFurnitureData() {
   else delete hwData[hwProjectId][hwCurrentFurnId];
 }
 
-function hwSaveFurniture() {
-  hwSaveFurnitureData();
+async function hwSaveFurniture() {
+  hwSaveFurnitureLocal();
+  const spaceData=hwData[hwProjectId]?.[hwCurrentFurnId];
+  showSnack('שומר...');
+  const r=await api({action:'saveHardware',projectId:hwProjectId,spaceId:hwCurrentFurnId,hwData:spaceData||null});
+  showSnack(r.success?'✓ פרזול נשמר':'⚠ שגיאה בשמירה');
   hwRenderFurnList();
-  showSnack('✓ פרזול נשמר');
   const i=hwFurnList.findIndex(f=>f.id===hwCurrentFurnId);
   if(i>=0&&i<hwFurnList.length-1){
     hwCurrentFurnId=null;
@@ -1005,3 +1014,4 @@ loadData();
 </script>
 </body>
 </html>
+
