@@ -16,6 +16,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     background: #f2f0eb; color: #1a1a1a; min-height: 100vh;
     direction: rtl; -webkit-text-size-adjust: 100%;
+    padding-bottom: 70px;
   }
 
   .header {
@@ -124,7 +125,6 @@
   }
   .edit-btn:active { opacity: 0.7; }
 
-  /* Edit modal */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
     z-index: 200; display: flex; align-items: center; justify-content: center;
@@ -170,7 +170,6 @@
   .note-area:focus { border-color: #BA7517; background: #fff; }
   .note-area.has-content { border-color: #ff8f00; background: #fff8e1; color: #e65100; }
 
-  /* Add alert row */
   .add-alert-row { display: flex; gap: 8px; margin-top: 12px; }
   .add-alert-input {
     flex: 1; border: 2px solid #e0e0e0; border-radius: 8px;
@@ -194,7 +193,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .snackbar {
-    position: fixed; bottom: 24px; left: 50%;
+    position: fixed; bottom: 80px; left: 50%;
     transform: translateX(-50%) translateY(100px);
     background: #1a1a1a; color: #fff; padding: 12px 24px;
     border-radius: 10px; font-size: 15px;
@@ -203,6 +202,110 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
   .snackbar.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== ניווט תחתון ===== */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #1a1a1a; border-top: 1px solid #333;
+    display: flex; z-index: 150; height: 62px;
+  }
+  .bnav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; border: none; background: transparent; color: #777;
+    font-size: 11px; font-family: inherit; cursor: pointer; padding: 8px 4px;
+    transition: color 0.15s;
+  }
+  .bnav-btn.active { color: #BA7517; }
+  .bnav-icon { font-size: 22px; line-height: 1; }
+
+  /* ===== מסך פרזול ===== */
+  .hw-screen { display: none; }
+  .hw-screen.active { display: block; }
+
+  .hw-card {
+    background: #fff; border-radius: 16px; padding: 16px;
+    margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .hw-sec { font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+
+  .seg { display: flex; border: 1.5px solid #ddd; border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+  .seg-btn {
+    flex: 1; padding: 8px 6px; font-size: 13px; border: none; border-left: 1.5px solid #ddd;
+    background: transparent; color: #888; cursor: pointer; font-family: inherit;
+    white-space: nowrap; text-align: center; min-height: 40px;
+  }
+  .seg-btn:last-child { border-left: none; }
+  .seg-btn.active { background: #1a1a1a; color: #fff; }
+
+  .furn-list-hw { display: flex; flex-direction: column; gap: 6px; }
+  .furn-row-hw {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 10px; border: 1.5px solid #e8e6e0;
+    background: #fff; cursor: pointer;
+  }
+  .furn-row-hw.active-edit { border-color: #BA7517; background: #fff8e1; }
+  .furn-row-hw.has-hw { border-color: #43a047; }
+  .furn-row-code { font-size: 11px; color: #aaa; min-width: 34px; font-weight: 600; }
+  .furn-row-name { flex: 1; font-size: 14px; }
+  .hw-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+
+  .hw-editor { margin-top: 12px; }
+  .hw-editor-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; color: #BA7517; }
+
+  .hw-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+  .hw-tbl th { text-align: right; font-size: 11px; color: #aaa; font-weight: 600; padding: 0 4px 8px; border-bottom: 1.5px solid #e8e6e0; white-space: nowrap; }
+  .hw-tbl td { padding: 6px 4px; border-bottom: 1px solid #f0ede8; vertical-align: middle; }
+  .hw-tbl input[type=number] { width: 50px; text-align: center; padding: 4px; font-size: 13px; border: 1.5px solid #ddd; border-radius: 6px; font-family: inherit; }
+  .hw-tbl input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; accent-color: #BA7517; }
+  .hw-tbl select { font-size: 13px; padding: 4px 6px; border: 1.5px solid #ddd; border-radius: 6px; font-family: inherit; }
+
+  .hw-add-row {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #888;
+    background: none; border: 1.5px dashed #ccc; border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; margin-top: 6px; font-family: inherit;
+  }
+  .hw-add-row:active { opacity: 0.7; }
+  .del-row-btn { background: none; border: none; cursor: pointer; color: #ccc; font-size: 18px; padding: 0 2px; line-height: 1; }
+  .del-row-btn:active { color: #e53935; }
+
+  .hw-save-btn {
+    width: 100%; background: #1a1a1a; color: #fff; border: none;
+    border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit; margin-top: 14px;
+  }
+  .hw-save-btn:active { opacity: 0.8; }
+
+  .hw-summary-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .hw-sum-tab {
+    flex: 1; padding: 10px; font-size: 14px; font-weight: 600;
+    border: 2px solid #ddd; border-radius: 10px; background: #fff;
+    cursor: pointer; font-family: inherit; text-align: center; color: #888;
+  }
+  .hw-sum-tab.active { border-color: #BA7517; color: #BA7517; background: #fff8e1; }
+
+  .hw-output {
+    background: #f8f6f0; border-radius: 10px; padding: 14px;
+    font-size: 13px; line-height: 1.9; white-space: pre-wrap;
+    font-family: monospace; border: 1px solid #e8e6e0; margin-top: 12px;
+  }
+  .hw-copy-btn {
+    width: 100%; background: #BA7517; color: #fff; border: none;
+    border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit; margin-top: 10px;
+  }
+  .hw-copy-btn:active { opacity: 0.8; }
+  .hw-sub-tabs { display: flex; border-bottom: 2px solid #e8e6e0; margin-bottom: 14px; }
+  .hw-sub-tab {
+    flex: 1; padding: 10px; font-size: 14px; border: none; background: transparent;
+    color: #aaa; cursor: pointer; font-family: inherit; font-weight: 600;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+  }
+  .hw-sub-tab.active { color: #1a1a1a; border-bottom-color: #BA7517; }
+
+  .select-all-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #888; margin-bottom: 8px; cursor: pointer; }
+  .chk-furn-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #e8e6e0; background: #fff; margin-bottom: 6px; }
+  .chk-furn-row.has-hw { border-color: #43a047; }
+  .chk-furn-row input[type=checkbox] { width: 18px; height: 18px; accent-color: #BA7517; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -218,8 +321,94 @@
   <div class="tabs" id="tabs-container"></div>
 </div>
 
+<!-- מסך ייצור -->
 <div class="content" id="main-content">
   <div class="loader"><div class="spinner"></div>טוען פרויקטים...</div>
+</div>
+
+<!-- מסך פרזול -->
+<div class="content hw-screen" id="hw-screen">
+  <div class="hw-card">
+    <div class="hw-sec">פרויקט</div>
+    <div class="seg" id="hw-proj-seg"></div>
+  </div>
+
+  <div class="hw-card">
+    <div class="hw-sub-tabs">
+      <button class="hw-sub-tab active" onclick="hwShowTab('input',this)">הזנת פרזול</button>
+      <button class="hw-sub-tab" onclick="hwShowTab('summary',this)">סיכום והזמנה</button>
+    </div>
+
+    <!-- הזנה -->
+    <div id="hw-input-tab">
+      <div class="hw-sec">בחר רהיט</div>
+      <div class="furn-list-hw" id="hw-furn-list"></div>
+
+      <div class="hw-editor" id="hw-editor" style="display:none">
+        <div class="hw-editor-title" id="hw-editor-title"></div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="flex:1;min-width:140px;">
+            <div class="hw-sec" style="margin-bottom:6px">חברה</div>
+            <div class="seg" id="hw-company-seg">
+              <button class="seg-btn active" onclick="hwSetCompany('domicil-mobila',this)">מובילה</button>
+              <button class="seg-btn" onclick="hwSetCompany('domicil-vision',this)">ויז'ן</button>
+              <button class="seg-btn" onclick="hwSetCompany('blum',this)">בלום</button>
+              <button class="seg-btn" onclick="hwSetCompany('grass',this)">גראס</button>
+              <button class="seg-btn" onclick="hwSetCompany('other',this)">אחר</button>
+            </div>
+          </div>
+          <div style="flex:1;min-width:100px;">
+            <div class="hw-sec" style="margin-bottom:6px">צבע</div>
+            <div class="seg" id="hw-color-seg">
+              <button class="seg-btn active" onclick="hwSetColor('אפור גרפיט',this)">אפור</button>
+              <button class="seg-btn" onclick="hwSetColor('לבן',this)">לבן</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hw-sec">שורות מגירות</div>
+        <table class="hw-tbl">
+          <thead>
+            <tr>
+              <th>עומק</th><th>גב</th><th>כמות</th>
+              <th style="text-align:center">כבד</th>
+              <th style="text-align:center">פנימית</th>
+              <th style="text-align:center" id="hw-th-gallery">גלריה+</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="hw-rows"></tbody>
+        </table>
+        <button class="hw-add-row" onclick="hwAddRow()">+ הוסף שורה</button>
+
+        <div style="margin-top:14px;">
+          <div class="hw-sec" style="margin-bottom:4px">הערה למגירות</div>
+          <input type="text" id="hw-dnote" placeholder="הערה חופשית..." style="width:100%;font-size:14px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;direction:rtl;outline:none;">
+        </div>
+        <div style="margin-top:10px;">
+          <div class="hw-sec" style="margin-bottom:4px">פרזול נוסף</div>
+          <textarea id="hw-extra" rows="2" placeholder="צירים, קלאפות, ידיות..." style="width:100%;font-size:14px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;direction:rtl;outline:none;resize:vertical;"></textarea>
+        </div>
+        <button class="hw-save-btn" onclick="hwSaveFurniture()">✓ שמור וסיים רהיט זה</button>
+      </div>
+    </div>
+
+    <!-- סיכום -->
+    <div id="hw-summary-tab" style="display:none">
+      <div class="hw-sec">בחר רהיטים לסיכום</div>
+      <label class="select-all-row"><input type="checkbox" id="hw-chk-all" onchange="hwToggleAll(this)" style="width:18px;height:18px;accent-color:#BA7517;cursor:pointer"> בחר הכל</label>
+      <div id="hw-chk-list"></div>
+
+      <div style="margin-top:16px;">
+        <div class="hw-summary-tabs">
+          <button class="hw-sum-tab active" id="hw-mode-supplier" onclick="hwSetSumMode('supplier',this)">הזמנה לספק</button>
+          <button class="hw-sum-tab" id="hw-mode-workshop" onclick="hwSetSumMode('workshop',this)">חלוקה בנגריה</button>
+        </div>
+        <div id="hw-output-area"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Edit modal -->
@@ -247,6 +436,18 @@
 
 <div class="snackbar" id="snackbar"></div>
 
+<!-- ניווט תחתון -->
+<nav class="bottom-nav">
+  <button class="bnav-btn active" id="bnav-production" onclick="switchScreen('production')">
+    <span class="bnav-icon">🪵</span>
+    ייצור
+  </button>
+  <button class="bnav-btn" id="bnav-hardware" onclick="switchScreen('hardware')">
+    <span class="bnav-icon">🔩</span>
+    פרזול
+  </button>
+</nav>
+
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbyZkdn7n9ZYNCR0UXpgRMt5oaS9dAJUvh66FWwHw0HYH5M4hS61penR1rnbQ4C-x6wN/exec';
 const KEY = 'nagaria-ayal-2026';
@@ -260,17 +461,51 @@ const STEPS = [
   {key:'assembly', label:'הרכבה'},
 ];
 
+const HW_DEPTHS = [550,500,450,400,350];
+const HW_BACKS = {
+  'domicil-mobila':[68,151,183],
+  'domicil-vision':[84,116,167,199],
+  'blum':[],'grass':[],'other':[]
+};
+const HW_COMP_LABEL = {
+  'domicil-mobila':'דומיסיל מובילה',
+  'domicil-vision':"דומיסיל ויז'ן",
+  'blum':'בלום','grass':'גראס','other':''
+};
+
 let projects = [];
 let currentProjectId = null;
-let editContext = null; // {projectId, spaceId}
+let editContext = null;
+let currentScreen = 'production';
 
+// === פרזול ===
+let hwProjectId = null;
+let hwFurnList = [];
+let hwCurrentFurnId = null;
+let hwCompany = 'domicil-mobila';
+let hwColor = 'אפור גרפיט';
+let hwRowId = 0;
+let hwData = {};
+let hwSumMode = 'supplier';
+let hwSubTab = 'input';
+
+// ===== ניווט ראשי =====
+function switchScreen(screen) {
+  currentScreen = screen;
+  document.getElementById('main-content').style.display = screen==='production' ? '' : 'none';
+  document.getElementById('hw-screen').classList.toggle('active', screen==='hardware');
+  document.getElementById('bnav-production').classList.toggle('active', screen==='production');
+  document.getElementById('bnav-hardware').classList.toggle('active', screen==='hardware');
+  document.getElementById('tabs-container').parentElement.style.display = screen==='production' ? '' : 'none';
+  if (screen==='hardware' && !hwProjectId && projects.length) {
+    hwSelectProject(projects[0].id);
+  }
+}
+
+// ===== API & ייצור =====
 async function api(payload) {
   try {
-    const res = await fetch(API, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify({key:KEY, ...payload})
-    });
+    const res = await fetch(API, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({key:KEY,...payload})});
     return await res.json();
   } catch(e) { return {success:false}; }
 }
@@ -282,6 +517,7 @@ async function loadData() {
     projects = r.data;
     renderTabs();
     renderView();
+    hwBuildProjSeg();
     const now = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('last-update').textContent = 'עודכן ' + now;
   } else {
@@ -295,7 +531,7 @@ function renderTabs() {
   const container = document.getElementById('tabs-container');
   const tabs = [{id:null,name:'הכל',alerts:[]}].concat(projects);
   container.innerHTML = tabs.map(p => {
-    const isActive = currentProjectId === (p.id || null);
+    const isActive = currentProjectId === (p.id||null);
     const hasAlert = p.alerts && p.alerts.length > 0;
     return `<button class="tab ${isActive?'active':''}" onclick="switchTo(${p.id?'"'+p.id+'"':'null'})">
       ${hasAlert?'<span class="tab-alert"></span>':''}${p.name}
@@ -310,27 +546,27 @@ function switchTo(id) {
 
 function renderView() {
   if (!currentProjectId) renderDashboard();
-  else { const p = projects.find(p=>p.id===currentProjectId); if(p) renderProject(p); }
+  else { const p=projects.find(p=>p.id===currentProjectId); if(p) renderProject(p); }
 }
 
 const furniturePct = sp => {
-  const d = STEPS.filter(s=>s.key==='fronts'?!!sp.steps[s.key]:sp.steps[s.key]===true).length;
+  const d=STEPS.filter(s=>s.key==='fronts'?!!sp.steps[s.key]:sp.steps[s.key]===true).length;
   return Math.round(d/STEPS.length*100);
 };
-const projPct = pr => !pr.spaces.length ? 0 : Math.round(pr.spaces.reduce((a,s)=>a+furniturePct(s),0)/pr.spaces.length);
+const projPct = pr => !pr.spaces.length?0:Math.round(pr.spaces.reduce((a,s)=>a+furniturePct(s),0)/pr.spaces.length);
 const fmtDate = d => { try { return new Date(d).toLocaleDateString('he-IL',{day:'numeric',month:'long'}); } catch(e){return d;} };
 const stInfo = s => ({
-  active:  {label:'בייצור', cls:'status-active'},
-  planning:{label:'בתכנון', cls:'status-planning'},
-  done:    {label:'הושלם',  cls:'status-done'},
-}[s] || {label:'בייצור',cls:'status-active'});
+  active:{label:'בייצור',cls:'status-active'},
+  planning:{label:'בתכנון',cls:'status-planning'},
+  done:{label:'הושלם',cls:'status-done'},
+}[s]||{label:'בייצור',cls:'status-active'});
 
 function renderDashboard() {
   document.getElementById('main-content').innerHTML =
-    '<div class="dashboard-grid">' +
-    projects.map(p => {
-      const pct=projPct(p), st=stInfo(p.status);
-      const alerts = p.alerts.map(a=>`<div class="alert-chip"><span>⚠ ${esc(a)}</span></div>`).join('');
+    '<div class="dashboard-grid">'+
+    projects.map(p=>{
+      const pct=projPct(p),st=stInfo(p.status);
+      const alerts=p.alerts.map(a=>`<div class="alert-chip"><span>⚠ ${esc(a)}</span></div>`).join('');
       return `<div class="project-card" onclick="switchTo('${p.id}')">
         <div class="card-top">
           <div><div class="card-name">${esc(p.name)}</div><div class="card-client">${esc(p.client)}</div></div>
@@ -344,29 +580,27 @@ function renderDashboard() {
         ${alerts?`<div class="alert-list">${alerts}</div>`:''}
         <div style="font-size:13px;color:#aaa;margin-top:10px">${p.spaces.length} רהיטים →</div>
       </div>`;
-    }).join('') + '</div>';
+    }).join('')+'</div>';
 }
 
 function renderProject(proj) {
-  const pct=projPct(proj), st=stInfo(proj.status);
-  const alerts = proj.alerts.map(a=>`
+  const pct=projPct(proj),st=stInfo(proj.status);
+  const alerts=proj.alerts.map(a=>`
     <div class="alert-chip red">
       <span>⚠ ${esc(a)}</span>
       <button class="alert-del-btn" onclick="deleteAlert('${proj.id}','${esc(a)}')">×</button>
     </div>`).join('');
-  const legend = STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
-
-  const furnitureCards = proj.spaces.map(space => {
-    const spPct=furniturePct(space), hasNote=!!(space.notes&&space.notes.trim());
-    const stepBtns = STEPS.map(s => {
-      const done = s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
-      const cls  = done?(s.key==='assembly'?'done-assembly':'done'):'';
-      const dt   = s.key==='fronts'&&space.steps.fronts
+  const legend=STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
+  const furnitureCards=proj.spaces.map(space=>{
+    const spPct=furniturePct(space),hasNote=!!(space.notes&&space.notes.trim());
+    const stepBtns=STEPS.map(s=>{
+      const done=s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
+      const cls=done?(s.key==='assembly'?'done-assembly':'done'):'';
+      const dt=s.key==='fronts'&&space.steps.fronts
         ?`<span class="step-date">(${String(space.steps.fronts).slice(5).replace('-','/')})</span>`:'';
       return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
         ${done?'✓ ':''}${s.label}${dt}</button>`;
     }).join('');
-
     return `<div class="furniture-card ${hasNote?'has-note':''}" id="card-${space.id}">
       <div class="furniture-header">
         <div class="furniture-title-area">
@@ -387,8 +621,7 @@ function renderProject(proj) {
       >${esc(space.notes)}</textarea>
     </div>`;
   }).join('');
-
-  document.getElementById('main-content').innerHTML = `
+  document.getElementById('main-content').innerHTML=`
     <div class="project-header">
       <div class="proj-title-row">
         <div>
@@ -414,95 +647,359 @@ function renderProject(proj) {
     ${furnitureCards}`;
 }
 
-// Edit modal
-function openEditModal(projectId, spaceId) {
-  const proj  = projects.find(p=>p.id===projectId);
-  const space = proj?.spaces.find(s=>s.id===spaceId);
-  if (!space) return;
-  editContext = {projectId, spaceId};
-  document.getElementById('edit-num').value    = space.itemNum  || '';
-  document.getElementById('edit-name').value   = space.name    || '';
-  document.getElementById('edit-finish').value = space.finish  || '';
+function openEditModal(projectId,spaceId) {
+  const proj=projects.find(p=>p.id===projectId);
+  const space=proj?.spaces.find(s=>s.id===spaceId);
+  if(!space)return;
+  editContext={projectId,spaceId};
+  document.getElementById('edit-num').value=space.itemNum||'';
+  document.getElementById('edit-name').value=space.name||'';
+  document.getElementById('edit-finish').value=space.finish||'';
   document.getElementById('edit-modal').classList.remove('hidden');
 }
-
-function closeEditModal() {
-  document.getElementById('edit-modal').classList.add('hidden');
-  editContext = null;
-}
+function closeEditModal(){document.getElementById('edit-modal').classList.add('hidden');editContext=null;}
 
 async function saveEdit() {
-  if (!editContext) return;
-  const {projectId, spaceId} = editContext;
-  const proj  = projects.find(p=>p.id===projectId);
-  const space = proj?.spaces.find(s=>s.id===spaceId);
-  if (!space) return;
-
-  space.itemNum = document.getElementById('edit-num').value.trim();
-  space.name    = document.getElementById('edit-name').value.trim();
-  space.finish  = document.getElementById('edit-finish').value.trim();
-
-  closeEditModal();
-  renderProject(proj);
-
-  const r = await api({action:'updateSpaceInfo', projectId, spaceId,
-    itemNum: space.itemNum, name: space.name, finish: space.finish});
-  showSnack(r.success ? '✓ נשמר' : '⚠ שגיאה בשמירה');
+  if(!editContext)return;
+  const {projectId,spaceId}=editContext;
+  const proj=projects.find(p=>p.id===projectId);
+  const space=proj?.spaces.find(s=>s.id===spaceId);
+  if(!space)return;
+  space.itemNum=document.getElementById('edit-num').value.trim();
+  space.name=document.getElementById('edit-name').value.trim();
+  space.finish=document.getElementById('edit-finish').value.trim();
+  closeEditModal();renderProject(proj);
+  const r=await api({action:'updateSpaceInfo',projectId,spaceId,itemNum:space.itemNum,name:space.name,finish:space.finish});
+  showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
 
-async function toggleStep(projectId, spaceId, stepKey, currentlyDone) {
-  const proj  = projects.find(p=>p.id===projectId);
-  const space = proj?.spaces.find(s=>s.id===spaceId);
-  if (!space) return;
-  const newVal = stepKey==='fronts' ? (currentlyDone?'':new Date().toISOString().slice(0,10)) : !currentlyDone;
-  space.steps[stepKey] = newVal;
-  renderProject(proj);
-  const r = await api({action:'updateStep', projectId, spaceId, stepKey, value:newVal});
-  showSnack(r.success ? '✓ נשמר' : '⚠ שגיאה בשמירה');
+async function toggleStep(projectId,spaceId,stepKey,currentlyDone) {
+  const proj=projects.find(p=>p.id===projectId);
+  const space=proj?.spaces.find(s=>s.id===spaceId);
+  if(!space)return;
+  const newVal=stepKey==='fronts'?(currentlyDone?'':new Date().toISOString().slice(0,10)):!currentlyDone;
+  space.steps[stepKey]=newVal;renderProject(proj);
+  const r=await api({action:'updateStep',projectId,spaceId,stepKey,value:newVal});
+  showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
 
-async function saveNote(projectId, spaceId, ta) {
-  const note = ta.value;
-  const proj = projects.find(p=>p.id===projectId);
-  if (proj) { const sp=proj.spaces.find(s=>s.id===spaceId); if(sp) sp.notes=note; }
-  const card = document.getElementById('card-'+spaceId);
-  if (card) card.className = 'furniture-card'+(note.trim()?' has-note':'');
-  const r = await api({action:'updateNote', projectId, spaceId, note});
-  showSnack(r.success ? '✓ הערה נשמרה' : '⚠ שגיאה');
+async function saveNote(projectId,spaceId,ta) {
+  const note=ta.value;
+  const proj=projects.find(p=>p.id===projectId);
+  if(proj){const sp=proj.spaces.find(s=>s.id===spaceId);if(sp)sp.notes=note;}
+  const card=document.getElementById('card-'+spaceId);
+  if(card)card.className='furniture-card'+(note.trim()?' has-note':'');
+  const r=await api({action:'updateNote',projectId,spaceId,note});
+  showSnack(r.success?'✓ הערה נשמרה':'⚠ שגיאה');
 }
 
-async function deleteAlert(projectId, alertText) {
-  if (!confirm('למחוק את ההתראה?')) return;
-  const proj = projects.find(p=>p.id===projectId);
-  if (proj) proj.alerts = proj.alerts.filter(a=>a!==alertText);
+async function deleteAlert(projectId,alertText) {
+  if(!confirm('למחוק את ההתראה?'))return;
+  const proj=projects.find(p=>p.id===projectId);
+  if(proj)proj.alerts=proj.alerts.filter(a=>a!==alertText);
   renderProject(proj);
-  const r = await api({action:'removeAlert', projectId, alertText});
-  showSnack(r.success ? '✓ התראה נמחקה' : '⚠ שגיאה');
+  const r=await api({action:'removeAlert',projectId,alertText});
+  showSnack(r.success?'✓ התראה נמחקה':'⚠ שגיאה');
 }
 
 async function addAlert(projectId) {
-  const input = document.getElementById('new-alert-'+projectId);
-  const text = input.value.trim();
-  if (!text) return;
-  const proj = projects.find(p=>p.id===projectId);
-  if (!proj) return;
-  proj.alerts.push(text);
-  input.value = '';
-  renderProject(proj);
-  const r = await api({action:'addAlert', projectId, alertText:text});
-  showSnack(r.success ? '✓ התראה נוספה' : '⚠ שגיאה');
+  const input=document.getElementById('new-alert-'+projectId);
+  const text=input.value.trim();if(!text)return;
+  const proj=projects.find(p=>p.id===projectId);if(!proj)return;
+  proj.alerts.push(text);input.value='';renderProject(proj);
+  const r=await api({action:'addAlert',projectId,alertText:text});
+  showSnack(r.success?'✓ התראה נוספה':'⚠ שגיאה');
 }
 
 function showSnack(msg) {
-  const el = document.getElementById('snackbar');
-  el.textContent = msg; el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 2200);
+  const el=document.getElementById('snackbar');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2200);
+}
+function esc(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ===== פרזול =====
+function hwBuildProjSeg() {
+  const seg=document.getElementById('hw-proj-seg');
+  seg.innerHTML=projects.map((p,i)=>
+    `<button class="seg-btn ${i===0?'active':''}" onclick="hwSelectProject('${p.id}',this)">${p.name}</button>`
+  ).join('');
+  if(projects.length)hwSelectProject(projects[0].id);
 }
 
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function hwSelectProject(id, el) {
+  hwSaveFurnitureIfDirty();
+  hwProjectId=id;
+  hwCurrentFurnId=null;
+  if(el){
+    document.querySelectorAll('#hw-proj-seg .seg-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  const proj=projects.find(p=>p.id===id);
+  hwFurnList=proj?proj.spaces.map(s=>({id:s.id,code:s.itemNum||'',name:s.name})):[];
+  document.getElementById('hw-editor').style.display='none';
+  hwRenderFurnList();
+  if(hwSubTab==='summary')hwRenderSummaryTab();
 }
+
+function hwRenderFurnList() {
+  const el=document.getElementById('hw-furn-list');
+  el.innerHTML=hwFurnList.map(f=>{
+    const hasHw=!!(hwData[hwProjectId]?.[f.id]);
+    return `<div class="furn-row-hw ${hasHw?'has-hw':''} ${f.id===hwCurrentFurnId?'active-edit':''}" id="hwfi-${f.id}" onclick="hwSelectFurn('${f.id}')">
+      <span class="furn-row-code">${esc(f.code)}</span>
+      <span class="furn-row-name">${esc(f.name)}</span>
+      ${hasHw?'<span class="hw-badge">✓</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function hwSelectFurn(id) {
+  hwSaveFurnitureIfDirty();
+  hwCurrentFurnId=id;
+  const f=hwFurnList.find(x=>x.id===id);
+  document.querySelectorAll('.furn-row-hw').forEach(e=>e.classList.remove('active-edit'));
+  const el=document.getElementById('hwfi-'+id);if(el)el.classList.add('active-edit');
+  document.getElementById('hw-editor-title').textContent=`${f.code} ${f.name}`;
+  document.getElementById('hw-editor').style.display='block';
+  hwLoadFurnData(id);
+}
+
+function hwLoadFurnData(id) {
+  const s=hwData[hwProjectId]?.[id];
+  document.getElementById('hw-dnote').value='';
+  document.getElementById('hw-extra').value='';
+  document.getElementById('hw-rows').innerHTML='';
+  hwRowId=0;
+  hwCompany='domicil-mobila';hwColor='אפור גרפיט';
+  document.querySelectorAll('#hw-company-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.querySelectorAll('#hw-color-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  hwUpdateGalCol();
+  if(s){
+    hwCompany=s.company||'domicil-mobila';hwColor=s.color||'אפור גרפיט';
+    document.getElementById('hw-dnote').value=s.dnote||'';
+    document.getElementById('hw-extra').value=s.extra||'';
+    const ci=['domicil-mobila','domicil-vision','blum','grass','other'].indexOf(hwCompany);
+    document.querySelectorAll('#hw-company-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===ci));
+    document.querySelectorAll('#hw-color-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===(hwColor==='לבן'?1:0)));
+    hwUpdateGalCol();
+    if(s.rows&&s.rows.length){s.rows.forEach(r=>hwAddRow(r.dep,r.back,r.qty,r.heavy,r.inner,r.gallery));return;}
+  }
+  hwAddRow();
+}
+
+function hwSaveFurnitureIfDirty(){if(hwCurrentFurnId)hwSaveFurnitureData();}
+
+function hwSaveFurnitureData() {
+  if(!hwCurrentFurnId)return;
+  if(!hwData[hwProjectId])hwData[hwProjectId]={};
+  const rows=hwCollectRows();
+  const dnote=document.getElementById('hw-dnote').value.trim();
+  const extra=document.getElementById('hw-extra').value.trim();
+  if(rows.some(r=>r.qty>0)||dnote||extra)
+    hwData[hwProjectId][hwCurrentFurnId]={company:hwCompany,color:hwColor,rows,dnote,extra};
+  else delete hwData[hwProjectId][hwCurrentFurnId];
+}
+
+function hwSaveFurniture() {
+  hwSaveFurnitureData();
+  hwRenderFurnList();
+  showSnack('✓ פרזול נשמר');
+  const i=hwFurnList.findIndex(f=>f.id===hwCurrentFurnId);
+  if(i>=0&&i<hwFurnList.length-1){
+    hwCurrentFurnId=null;
+    document.getElementById('hw-editor').style.display='none';
+    hwSelectFurn(hwFurnList[i+1].id);
+  }
+}
+
+function hwSetCompany(c,el){
+  hwCompany=c;
+  document.querySelectorAll('#hw-company-seg .seg-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');hwUpdateGalCol();hwRebuildBacks();
+}
+function hwSetColor(c,el){
+  hwColor=c;
+  document.querySelectorAll('#hw-color-seg .seg-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+function hwUpdateGalCol(){
+  const show=hwCompany==='domicil-mobila';
+  document.getElementById('hw-th-gallery').style.display=show?'':'none';
+  document.querySelectorAll('[id^="hwgal-"]').forEach(c=>c.style.display=show?'':'none');
+}
+function hwRebuildBacks(){
+  document.querySelectorAll('[id^="hwback-cell-"]').forEach(cell=>{cell.innerHTML=hwBackInput(null);});
+}
+function hwBackInput(val){
+  const backs=HW_BACKS[hwCompany];
+  if(!backs||!backs.length)return`<input type="number" class="hwback-free" placeholder="מ״מ" style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center" value="${val||''}">`;
+  return`<select class="hwback-sel" style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit">${backs.map(b=>`<option value="${b}" ${b==val?'selected':''}>${b}</option>`).join('')}</select>`;
+}
+function hwAddRow(depth,back,qty,heavy,inner,gallery){
+  const id=++hwRowId;
+  const showGal=hwCompany==='domicil-mobila';
+  const depOpts=HW_DEPTHS.map(d=>`<option value="${d}" ${d==depth?'selected':''}>${d}</option>`).join('');
+  const tr=document.createElement('tr');tr.id='hwr'+id;
+  tr.innerHTML=`<td><select id="hwdep-${id}" style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit">${depOpts}</select></td>
+    <td id="hwback-cell-${id}">${hwBackInput(back)}</td>
+    <td><input type="number" id="hwqty-${id}" value="${qty||''}" placeholder="1" style="width:50px;text-align:center;padding:4px;font-size:13px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit" min="1"></td>
+    <td style="text-align:center"><input type="checkbox" id="hwheavy-${id}" ${heavy?'checked':''}></td>
+    <td style="text-align:center"><input type="checkbox" id="hwinner-${id}" ${inner?'checked':''}></td>
+    <td style="text-align:center;display:${showGal?'':'none'}" id="hwgal-${id}"><input type="checkbox" id="hwgallery-${id}" ${gallery?'checked':''}></td>
+    <td><button class="del-row-btn" onclick="hwDelRow(${id})">×</button></td>`;
+  document.getElementById('hw-rows').appendChild(tr);
+}
+function hwDelRow(id){const el=document.getElementById('hwr'+id);if(el)el.remove();}
+function hwCollectRows(){
+  const rows=[];
+  document.querySelectorAll('#hw-rows tr').forEach(tr=>{
+    const id=tr.id.replace('hwr','');
+    const dep=document.getElementById('hwdep-'+id)?.value;
+    const bs=tr.querySelector('.hwback-sel'),bf=tr.querySelector('.hwback-free');
+    const back=bs?bs.value:(bf?bf.value:'');
+    const qty=parseInt(document.getElementById('hwqty-'+id)?.value)||0;
+    const heavy=document.getElementById('hwheavy-'+id)?.checked||false;
+    const inner=document.getElementById('hwinner-'+id)?.checked||false;
+    const galEl=document.getElementById('hwgallery-'+id);
+    const gallery=galEl?galEl.checked:false;
+    if(dep)rows.push({dep,back,qty,heavy,inner,gallery});
+  });
+  return rows;
+}
+
+function hwShowTab(tab,el){
+  hwSubTab=tab;
+  document.querySelectorAll('.hw-sub-tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('hw-input-tab').style.display=tab==='input'?'':'none';
+  document.getElementById('hw-summary-tab').style.display=tab==='summary'?'':'none';
+  if(tab==='summary')hwRenderSummaryTab();
+}
+
+function hwRenderSummaryTab(){
+  const el=document.getElementById('hw-chk-list');
+  el.innerHTML=hwFurnList.map(f=>{
+    const hasHw=!!(hwData[hwProjectId]?.[f.id]);
+    return`<div class="chk-furn-row ${hasHw?'has-hw':''}">
+      <input type="checkbox" id="hwchk-${f.id}" ${hasHw?'checked':''} ${hasHw?'':'disabled'} onchange="hwRenderOutput()">
+      <span style="font-size:11px;color:#aaa;min-width:34px;font-weight:600">${esc(f.code)}</span>
+      <span style="font-size:14px;flex:1">${esc(f.name)}</span>
+      ${hasHw?'<span class="hw-badge">✓</span>':'<span style="font-size:11px;color:#aaa">אין נתונים</span>'}
+    </div>`;
+  }).join('');
+  hwUpdateSelectAll();
+  hwRenderOutput();
+}
+
+function hwToggleAll(chk){
+  hwFurnList.forEach(f=>{const el=document.getElementById('hwchk-'+f.id);if(el&&!el.disabled)el.checked=chk.checked;});
+  hwRenderOutput();
+}
+function hwUpdateSelectAll(){
+  const all=hwFurnList.every(f=>{const el=document.getElementById('hwchk-'+f.id);return!el||el.disabled||el.checked;});
+  const ca=document.getElementById('hw-chk-all');if(ca)ca.checked=all;
+}
+function hwSetSumMode(m,el){
+  hwSumMode=m;
+  document.querySelectorAll('.hw-sum-tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  hwRenderOutput();
+}
+function hwGetSelectedIds(){return hwFurnList.filter(f=>{const el=document.getElementById('hwchk-'+f.id);return el&&el.checked;}).map(f=>f.id);}
+
+function hwRenderOutput(){
+  const ids=hwGetSelectedIds();
+  const area=document.getElementById('hw-output-area');
+  if(!ids.length){area.innerHTML='<div style="font-size:13px;color:#aaa;padding:12px 0">בחר רהיטים לסיכום</div>';return;}
+  const proj=projects.find(p=>p.id===hwProjectId);
+  const projName=proj?proj.name:'';
+  const text=hwSumMode==='supplier'?hwBuildSupplier(ids,projName):hwBuildWorkshop(ids,projName);
+  area.innerHTML=`<div class="hw-output">${escHtml(text)}</div>
+    <button class="hw-copy-btn" onclick="hwCopy()">העתק לוואטסאפ 📋</button>`;
+}
+
+function hwBuildSupplier(ids,projName){
+  const data=hwData[hwProjectId]||{};
+  const lines=[`*הזמנת פרזול — ${projName}*`,''];
+  const buckets={};
+  ids.forEach(id=>{
+    const d=data[id];if(!d)return;
+    const cl=HW_COMP_LABEL[d.company]||d.company;
+    const grp=`${cl}__${d.color}`;
+    if(!buckets[grp])buckets[grp]={label:`מגירות ${cl} ${d.color}`,rows:{}};
+    d.rows.forEach(r=>{
+      if(!r.qty)return;
+      const key=`${r.dep}__${r.back}__${r.inner?1:0}__${r.gallery?1:0}`;
+      if(!buckets[grp].rows[key])buckets[grp].rows[key]={dep:r.dep,back:r.back,inner:r.inner,gallery:r.gallery,heavy:0,normal:0};
+      if(r.heavy)buckets[grp].rows[key].heavy+=r.qty;
+      else buckets[grp].rows[key].normal+=r.qty;
+    });
+  });
+  Object.values(buckets).forEach(b=>{
+    lines.push(`*${b.label}:*`);
+    Object.values(b.rows).forEach(r=>{
+      const parts=[];
+      if(r.inner)parts.push('פנימית');
+      parts.push(`עומק ${r.dep}`);
+      if(r.back)parts.push(`גב ${r.back}`);
+      if(r.gallery)parts.push('+ גלריה');
+      const qparts=[];
+      if(r.heavy>0)qparts.push(`${r.heavy} כבד`);
+      if(r.normal>0)qparts.push(`${r.normal} רגיל`);
+      lines.push(`• ${qparts.join(' + ')} ${parts.join(' ')}`);
+    });
+    lines.push('');
+  });
+  const extras=[];
+  ids.forEach(id=>{
+    const d=data[id];if(!d||!d.extra)return;
+    const f=hwFurnList.find(x=>x.id===id);
+    d.extra.split('\n').forEach(l=>{if(l.trim())extras.push(`• ${l.trim()} (${f.code} ${f.name})`);});
+  });
+  if(extras.length){lines.push('*פרזול נוסף:*');lines.push(...extras);}
+  return lines.join('\n').trim();
+}
+
+function hwBuildWorkshop(ids,projName){
+  const data=hwData[hwProjectId]||{};
+  const lines=[`*חלוקת פרזול בנגריה — ${projName}*`,''];
+  ids.forEach(id=>{
+    const d=data[id];if(!d)return;
+    const f=hwFurnList.find(x=>x.id===id);
+    const hasRows=d.rows&&d.rows.some(r=>r.qty>0);
+    if(!hasRows&&!d.extra)return;
+    lines.push(`*${f.code} ${f.name}*`);
+    if(hasRows){
+      const cl=HW_COMP_LABEL[d.company]||d.company;
+      lines.push(`מגירות ${cl} ${d.color}:`);
+      d.rows.forEach(r=>{
+        if(!r.qty)return;
+        const parts=[`${r.qty}`];
+        if(r.inner)parts.push('פנימית');
+        parts.push(`עומק ${r.dep}`);
+        if(r.back)parts.push(`גב ${r.back}`);
+        if(r.heavy)parts.push('*כבד*');
+        if(r.gallery)parts.push('+ גלריה');
+        lines.push(`• ${parts.join(' ')}`);
+      });
+      if(d.dnote)lines.push(`הערה: ${d.dnote}`);
+    }
+    if(d.extra){d.extra.split('\n').forEach(l=>{if(l.trim())lines.push(`• ${l.trim()}`);});}
+    lines.push('');
+  });
+  return lines.join('\n').trim();
+}
+
+function hwCopy(){
+  const ids=hwGetSelectedIds();
+  const proj=projects.find(p=>p.id===hwProjectId);
+  const projName=proj?proj.name:'';
+  const text=hwSumMode==='supplier'?hwBuildSupplier(ids,projName):hwBuildWorkshop(ids,projName);
+  navigator.clipboard.writeText(text).then(()=>showSnack('✓ הועתק ללוח')).catch(()=>showSnack('⚠ לא הועתק'));
+}
+
+function escHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 loadData();
 </script>
