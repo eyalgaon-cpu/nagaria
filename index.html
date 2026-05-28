@@ -172,15 +172,69 @@
   .step-btn.done-assembly { border-color: transparent; background: #e8f5e9; color: #2e7d32; font-weight: 700; }
   .step-date { font-size: 11px; opacity: 0.75; }
 
-  .note-area {
-    width: 100%; border-radius: 8px; border: 2px solid #e0e0e0;
-    background: #fafafa; color: #333; padding: 10px 12px;
-    font-size: 15px; font-family: inherit; direction: rtl;
-    resize: vertical; min-height: 50px; outline: none;
-    transition: border-color 0.15s, background 0.15s; line-height: 1.5;
+  /* ===== הערות חדשות ===== */
+  .notes-section {
+    margin-top: 4px;
   }
-  .note-area:focus { border-color: #BA7517; background: #fff; }
-  .note-area.has-content { border-color: #ff8f00; background: #fff8e1; color: #e65100; }
+  .notes-list {
+    display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;
+  }
+  .note-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 10px; border-radius: 8px;
+    background: #fff8e1; border: 1.5px solid #ffe082;
+    transition: all 0.2s;
+  }
+  .note-item.done-note {
+    background: #f5f5f5; border-color: #e0e0e0;
+    opacity: 0.6;
+  }
+  .note-checkbox {
+    width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px;
+    accent-color: #43a047; cursor: pointer; border-radius: 4px;
+  }
+  .note-text {
+    flex: 1; font-size: 14px; color: #5a3e00; line-height: 1.5;
+    padding-top: 1px;
+  }
+  .note-item.done-note .note-text {
+    text-decoration: line-through; color: #999;
+  }
+  .note-del-btn {
+    background: none; border: none; cursor: pointer;
+    color: #bbb; font-size: 18px; line-height: 1;
+    padding: 0 2px; flex-shrink: 0; opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .note-item:hover .note-del-btn { opacity: 1; }
+  .note-item.done-note .note-del-btn { opacity: 0.5; }
+
+  .add-note-row {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .add-note-input {
+    flex: 1; border: 2px solid #e0e0e0; border-radius: 8px;
+    padding: 9px 12px; font-size: 14px; font-family: inherit;
+    direction: rtl; outline: none; background: #fafafa;
+    transition: border-color 0.15s;
+  }
+  .add-note-input:focus { border-color: #BA7517; background: #fff; }
+  .add-note-btn {
+    background: #BA7517; color: #fff; border: none; border-radius: 8px;
+    padding: 9px 14px; font-size: 14px; cursor: pointer;
+    font-family: inherit; white-space: nowrap; flex-shrink: 0;
+    min-height: 42px;
+  }
+  .add-note-btn:active { opacity: 0.8; }
+  .notes-done-section {
+    margin-top: 6px;
+  }
+  .notes-done-toggle {
+    background: none; border: none; font-size: 12px; color: #aaa;
+    cursor: pointer; font-family: inherit; padding: 2px 0;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .notes-done-toggle:active { opacity: 0.7; }
 
   .add-alert-row { display: flex; gap: 8px; margin-top: 12px; }
   .add-alert-input {
@@ -696,12 +750,35 @@ const stInfo = s => ({
   done:{label:'הושלם',cls:'status-done'},
 }[s]||{label:'בייצור',cls:'status-active'});
 
+// ===== פרסור הערות =====
+// פורמט אחסון: "טקסט הערה||done" או "טקסט הערה" — מופרד ב-\n
+function parseNotes(rawNotes) {
+  if (!rawNotes || !rawNotes.trim()) return [];
+  return rawNotes.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    const isDone = trimmed.endsWith('||done');
+    const text = isDone ? trimmed.slice(0, -6).trim() : trimmed;
+    return { text, done: isDone };
+  }).filter(Boolean);
+}
+
+function serializeNotes(notes) {
+  return notes.map(n => n.done ? n.text + '||done' : n.text).join('\n');
+}
+
+function hasActiveNotes(rawNotes) {
+  const notes = parseNotes(rawNotes);
+  return notes.some(n => !n.done);
+}
+
 function renderDashboard() {
   document.getElementById('main-content').innerHTML =
     '<div class="dashboard-grid">'+
     projects.map(p=>{
       const pct=projPct(p),st=stInfo(p.status);
       const alerts=p.alerts.map(a=>`<div class="alert-chip"><span>⚠ ${esc(a)}</span></div>`).join('');
+      const notesCount = p.spaces.filter(s => hasActiveNotes(s.notes)).length;
       return `<div class="project-card" onclick="switchTo('${p.id}')">
         <div class="card-top">
           <div><div class="card-name">${esc(p.name)}</div><div class="card-client">${esc(p.client)}</div></div>
@@ -713,7 +790,7 @@ function renderDashboard() {
           <div class="progress-bar-bg"><div class="progress-bar-fill ${pct>=66?'fill-green':'fill-amber'}" style="width:${pct}%"></div></div>
         </div>
         ${alerts?`<div class="alert-list">${alerts}</div>`:''}
-        <div style="font-size:13px;color:#aaa;margin-top:10px">${p.spaces.length} רהיטים →</div>
+        <div style="font-size:13px;color:#aaa;margin-top:10px">${p.spaces.length} רהיטים${notesCount?' · 📝 '+notesCount+' עם הערות':''} →</div>
       </div>`;
     }).join('')+'</div>';
 }
@@ -728,7 +805,9 @@ function renderProject(proj) {
   const legend=STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
 
   const makeCard = space => {
-    const spPct=furniturePct(space),hasNote=!!(space.notes&&space.notes.trim());
+    const spPct=furniturePct(space);
+    const notes=parseNotes(space.notes);
+    const hasActive=notes.some(n=>!n.done);
     const isUrgent=!!(space.urgent);
     const stepBtns=STEPS.map(s=>{
       const done=s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
@@ -738,7 +817,38 @@ function renderProject(proj) {
       return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
         ${done?'✓ ':''}${s.label}${dt}</button>`;
     }).join('');
-    return `<div class="furniture-card ${hasNote?'has-note':''} ${isUrgent?'urgent':''}" id="card-${space.id}">
+
+    // בנה את רשימת ההערות
+    const activeNotes = notes.filter(n => !n.done);
+    const doneNotes = notes.filter(n => n.done);
+
+    const noteItemHTML = (n, idx, isDone) => `
+      <div class="note-item ${isDone?'done-note':''}" id="ni-${space.id}-${idx}">
+        <input type="checkbox" class="note-checkbox" ${isDone?'checked':''}
+          onchange="toggleNote('${proj.id}','${space.id}',${idx},this.checked)">
+        <span class="note-text">${esc(n.text)}</span>
+        <button class="note-del-btn" onclick="deleteNote('${proj.id}','${space.id}',${idx})" title="מחק הערה">×</button>
+      </div>`;
+
+    const activeNotesHTML = activeNotes.map((n,i) => {
+      const realIdx = notes.indexOf(n);
+      return noteItemHTML(n, realIdx, false);
+    }).join('');
+
+    const doneNotesHTML = doneNotes.length ? `
+      <div class="notes-done-section">
+        <button class="notes-done-toggle" onclick="toggleDoneNotes('${space.id}')">
+          <span id="done-toggle-icon-${space.id}">▶</span> הושלמו (${doneNotes.length})
+        </button>
+        <div id="done-notes-${space.id}" style="display:none;margin-top:4px">
+          ${doneNotes.map((n,i) => {
+            const realIdx = notes.indexOf(n);
+            return noteItemHTML(n, realIdx, true);
+          }).join('')}
+        </div>
+      </div>` : '';
+
+    return `<div class="furniture-card ${hasActive?'has-note':''} ${isUrgent?'urgent':''}" id="card-${space.id}">
       <div class="furniture-header">
         <div class="furniture-title-area">
           <div class="furniture-num">${esc(space.itemNum||'')} ${isUrgent?'<span class="urgent-badge">⚡ דחוף</span>':''}</div>
@@ -751,17 +861,24 @@ function renderProject(proj) {
         </div>
       </div>
       <div class="steps-row">${stepBtns}</div>
-      <textarea class="note-area ${hasNote?'has-content':''}"
-        placeholder="הערות / תקלות / חוסרים..." rows="${hasNote?2:1}"
-        onchange="saveNote('${proj.id}','${space.id}',this)"
-        oninput="this.className='note-area'+(this.value.trim()?' has-content':'')"
-      >${esc(space.notes)}</textarea>
+      <div class="notes-section">
+        <div class="notes-list" id="notes-list-${space.id}">
+          ${activeNotesHTML}
+        </div>
+        ${doneNotesHTML}
+        <div class="add-note-row">
+          <input class="add-note-input" type="text" placeholder="הוסף הערה..."
+            id="note-input-${space.id}"
+            onkeydown="if(event.key==='Enter')addNote('${proj.id}','${space.id}')">
+          <button class="add-note-btn" onclick="addNote('${proj.id}','${space.id}')">+ הוסף</button>
+        </div>
+      </div>
     </div>`;
   };
 
   // קיבוץ לפי שלב
   const phaseLabels = {'1':'שלב 1','2':'שלב 2','3':'שלב 3'};
-  const grouped = {'1':[],'2':[],'3':[],'':[]};
+  const grouped = {'1':[],'2':[],'3':[],'':[]}; 
   proj.spaces.forEach(s => grouped[s.phase||''].push(s));
 
   let furnitureCards = '';
@@ -777,6 +894,7 @@ function renderProject(proj) {
     }
     furnitureCards += spaces.map(makeCard).join('');
   });
+
   document.getElementById('main-content').innerHTML=`
     <div class="project-header">
       <div class="proj-title-row">
@@ -801,6 +919,56 @@ function renderProject(proj) {
     </div>
     <div class="steps-legend"><span class="legend-label">לחץ שלב כדי לסמן ✓</span>${legend}</div>
     ${furnitureCards}`;
+}
+
+function toggleDoneNotes(spaceId) {
+  const el = document.getElementById('done-notes-' + spaceId);
+  const icon = document.getElementById('done-toggle-icon-' + spaceId);
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? '' : 'none';
+  if (icon) icon.textContent = isHidden ? '▼' : '▶';
+}
+
+// ===== פעולות הערות =====
+async function addNote(projectId, spaceId) {
+  const input = document.getElementById('note-input-' + spaceId);
+  const text = input.value.trim();
+  if (!text) return;
+  const proj = projects.find(p => p.id === projectId);
+  const space = proj?.spaces.find(s => s.id === spaceId);
+  if (!space) return;
+  const notes = parseNotes(space.notes);
+  notes.push({ text, done: false });
+  space.notes = serializeNotes(notes);
+  input.value = '';
+  renderProject(proj);
+  const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
+  showSnack(r.success ? '✓ הערה נוספה' : '⚠ שגיאה');
+}
+
+async function toggleNote(projectId, spaceId, noteIdx, isDone) {
+  const proj = projects.find(p => p.id === projectId);
+  const space = proj?.spaces.find(s => s.id === spaceId);
+  if (!space) return;
+  const notes = parseNotes(space.notes);
+  if (notes[noteIdx]) notes[noteIdx].done = isDone;
+  space.notes = serializeNotes(notes);
+  renderProject(proj);
+  const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
+  showSnack(isDone ? '✓ הערה סומנה כבוצעה' : '↩ הערה חזרה לפתוחות');
+}
+
+async function deleteNote(projectId, spaceId, noteIdx) {
+  const proj = projects.find(p => p.id === projectId);
+  const space = proj?.spaces.find(s => s.id === spaceId);
+  if (!space) return;
+  const notes = parseNotes(space.notes);
+  notes.splice(noteIdx, 1);
+  space.notes = serializeNotes(notes);
+  renderProject(proj);
+  const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
+  showSnack(r.success ? '✓ הערה נמחקה' : '⚠ שגיאה');
 }
 
 function openEditModal(projectId,spaceId) {
@@ -843,16 +1011,6 @@ async function toggleStep(projectId,spaceId,stepKey,currentlyDone) {
   space.steps[stepKey]=newVal;renderProject(proj);
   const r=await api({action:'updateStep',projectId,spaceId,stepKey,value:newVal});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
-}
-
-async function saveNote(projectId,spaceId,ta) {
-  const note=ta.value;
-  const proj=projects.find(p=>p.id===projectId);
-  if(proj){const sp=proj.spaces.find(s=>s.id===spaceId);if(sp)sp.notes=note;}
-  const card=document.getElementById('card-'+spaceId);
-  if(card)card.className='furniture-card'+(note.trim()?' has-note':'');
-  const r=await api({action:'updateNote',projectId,spaceId,note});
-  showSnack(r.success?'✓ הערה נשמרה':'⚠ שגיאה');
 }
 
 async function deleteAlert(projectId,alertText) {
@@ -1177,7 +1335,7 @@ loadData();
 // ===== כספים =====
 const VAT = 0.18;
 let finProjectId = null;
-let finData = {}; // {projectId: {base, extras:[{desc,amt}], payments:[{desc,amt,date}]}}
+let finData = {};
 
 function finBuildProjSeg() {
   const seg = document.getElementById('fin-proj-seg');
@@ -1209,10 +1367,8 @@ function finRender() {
   const vat = v => Math.round(v * (1+VAT));
   const fmt = v => Number(v).toLocaleString('he-IL') + ' ₪';
 
-  // base vat
   document.getElementById('fin-base-vat').textContent = d.base ? `כולל מע"מ: ${fmt(vat(d.base))}` : '';
 
-  // extras
   const extEl = document.getElementById('fin-extras-list');
   extEl.innerHTML = (d.extras||[]).map((e,i) => `
     <div class="fin-row">
@@ -1226,7 +1382,6 @@ function finRender() {
       </div>
     </div>`).join('');
 
-  // payments
   const payEl = document.getElementById('fin-payments-list');
   payEl.innerHTML = (d.payments||[]).map((p,i) => `
     <div class="fin-row">
@@ -1311,4 +1466,3 @@ async function finSave() {
 </script>
 </body>
 </html>
-
