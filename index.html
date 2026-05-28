@@ -414,7 +414,10 @@
       <div class="header-title">🪵 נגרות אייל</div>
       <div class="header-sub" id="last-update">טוען נתונים...</div>
     </div>
-    <button class="refresh-btn" onclick="loadData()">רענן ↺</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="refresh-btn" id="update-btn" onclick="checkForUpdate()" style="display:none;background:#BA7517;color:#fff">⬆ עדכון זמין</button>
+      <button class="refresh-btn" onclick="loadData()">רענן ↺</button>
+    </div>
   </div>
   <div class="tabs" id="tabs-container"></div>
 </div>
@@ -1462,6 +1465,68 @@ async function finSave() {
   const r = await api({action:'saveFinance', projectId:finProjectId, finData:finData[finProjectId]});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
+
+// ===== Service Worker & עדכונים =====
+let swRegistration = null;
+
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js');
+
+    // בדוק עדכון בכל טעינה
+    swRegistration.addEventListener('updatefound', () => {
+      const newWorker = swRegistration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // גרסה חדשה זמינה!
+          showUpdateButton(newWorker);
+        }
+      });
+    });
+
+    // אם כבר יש worker ממתין מרענון קודם
+    if (swRegistration.waiting) {
+      showUpdateButton(swRegistration.waiting);
+    }
+
+    // האזן לשינוי controller (אחרי skipWaiting)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+
+  } catch(e) {
+    console.log('SW registration failed:', e);
+  }
+}
+
+function showUpdateButton(worker) {
+  const btn = document.getElementById('update-btn');
+  if (btn) {
+    btn.style.display = '';
+    btn._worker = worker;
+  }
+}
+
+function checkForUpdate() {
+  const btn = document.getElementById('update-btn');
+  if (btn && btn._worker) {
+    btn._worker.postMessage('skipWaiting');
+  } else if (swRegistration) {
+    swRegistration.update().then(() => {
+      showSnack('בודק עדכונים...');
+      setTimeout(() => {
+        if (swRegistration.waiting) {
+          showUpdateButton(swRegistration.waiting);
+        } else {
+          showSnack('✓ האפליקציה מעודכנת');
+        }
+      }, 2000);
+    });
+  }
+}
+
+registerSW();
 
 </script>
 </body>
