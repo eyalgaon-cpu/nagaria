@@ -129,6 +129,56 @@
   .furniture-pct  { font-size: 15px; font-weight: 600; color: #888; white-space: nowrap; }
   .furniture-pct.done { color: #43a047; }
 
+  /* === שרטוטים === */
+  .drawings-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+  .drawings-cat { margin-bottom: 6px; }
+  .drawings-cat-label { font-size: 12px; color: #999; font-weight: 600; margin-bottom: 4px; }
+  .drawing-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .drawing-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #f0f4f8; border: 1px solid #d4e0ea; color: #2c5f8a;
+    border-radius: 8px; padding: 5px 10px; font-size: 13px; cursor: pointer;
+    transition: background .15s;
+  }
+  .drawing-chip:hover { background: #e1ecf5; }
+  .drawing-chip.cat-architect { background: #f0f4f8; border-color: #d4e0ea; color: #2c5f8a; }
+  .drawing-chip.cat-shop { background: #f3f0f8; border-color: #ddd4ea; color: #5f2c8a; }
+  .drawing-chip.cat-assembly { background: #f0f8f2; border-color: #d4ead8; color: #2c8a47; }
+  .drawings-manage-btn {
+    background: #f5f5f5; border: none; border-radius: 8px;
+    padding: 5px 10px; font-size: 12px; cursor: pointer; color: #888; margin-top: 6px;
+  }
+  .drawings-empty { font-size: 12px; color: #bbb; }
+
+  /* תצוגה מקדימה של שרטוט */
+  .drawing-viewer-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000;
+    display: flex; flex-direction: column;
+  }
+  .drawing-viewer-overlay.hidden { display: none; }
+  .drawing-viewer-bar {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    background: #1a1a1a; color: #fff;
+  }
+  .drawing-viewer-title { flex: 1; font-size: 15px; font-weight: 600; }
+  .drawing-viewer-bar a, .drawing-viewer-close {
+    color: #fff; background: rgba(255,255,255,0.15); border: none;
+    border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer;
+    text-decoration: none;
+  }
+  .drawing-viewer-frame { flex: 1; border: none; background: #fff; width: 100%; }
+
+  /* מודאל ניהול שרטוטים */
+  .dw-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px;
+    background: #f7f7f7; border-radius: 8px; margin-bottom: 6px;
+  }
+  .dw-row-info { flex: 1; min-width: 0; }
+  .dw-row-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dw-row-cat { font-size: 11px; color: #888; }
+  .dw-row-del { background: none; border: none; color: #c62828; font-size: 20px; cursor: pointer; padding: 0 6px; }
+  .dw-add-box { border-top: 1px dashed #ddd; margin-top: 8px; padding-top: 10px; }
+
   .furniture-actions { display: flex; gap: 6px; align-items: center; }
   .edit-btn {
     background: #f5f5f5; border: none; border-radius: 8px;
@@ -545,11 +595,54 @@
       <input type="checkbox" id="edit-urgent" style="width:22px;height:22px;accent-color:#e53935;cursor:pointer;">
       <label class="modal-label" for="edit-urgent" style="margin:0;cursor:pointer;color:#c62828;font-weight:600">⚡ דחוף</label>
     </div>
+    <div class="modal-field">
+      <button class="drawings-manage-btn" style="width:100%;padding:10px;font-size:14px;background:#eef3f7;color:#2c5f8a;font-weight:600" onclick="openDrawingsModal()">📐 ניהול שרטוטים</button>
+    </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeEditModal()">ביטול</button>
       <button class="modal-save" onclick="saveEdit()">שמור</button>
     </div>
   </div>
+</div>
+
+<!-- מודאל ניהול שרטוטים -->
+<div class="modal-overlay hidden" id="drawings-modal">
+  <div class="modal-box">
+    <div class="modal-title">📐 שרטוטים</div>
+    <div id="dw-list" style="margin-bottom:10px"></div>
+    <div class="dw-add-box">
+      <div class="modal-field">
+        <label class="modal-label">שם השרטוט</label>
+        <input class="modal-input" id="dw-name" type="text" placeholder="למשל: חתך מטבח / תוכנית הרכבה">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">סוג</label>
+        <select class="modal-input" id="dw-cat">
+          <option value="architect">שרטוט אדריכל</option>
+          <option value="shop">שופ דרוינג</option>
+          <option value="assembly">תוכנית הרכבה</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">קישור Google Drive</label>
+        <input class="modal-input" id="dw-url" type="text" placeholder="הדבק כאן קישור Drive" style="direction:ltr;text-align:left">
+      </div>
+      <button class="modal-save" style="width:100%" onclick="addDrawing()">+ הוסף שרטוט</button>
+    </div>
+    <div class="modal-btns" style="margin-top:10px">
+      <button class="modal-cancel" onclick="closeDrawingsModal()">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- צופה שרטוטים -->
+<div class="drawing-viewer-overlay hidden" id="drawing-viewer">
+  <div class="drawing-viewer-bar">
+    <span class="drawing-viewer-title" id="dv-title"></span>
+    <a id="dv-open" href="#" target="_blank" rel="noopener">פתח בכרטיסייה ↗</a>
+    <button class="drawing-viewer-close" onclick="closeDrawingViewer()">✕ סגור</button>
+  </div>
+  <iframe class="drawing-viewer-frame" id="dv-frame" src="about:blank"></iframe>
 </div>
 
 
@@ -864,6 +957,7 @@ function renderProject(proj) {
         </div>
       </div>
       <div class="steps-row">${stepBtns}</div>
+      ${renderDrawings(proj.id, space)}
       <div class="notes-section">
         <div class="notes-list" id="notes-list-${space.id}">
           ${activeNotesHTML}
@@ -1004,6 +1098,135 @@ async function saveEdit() {
   closeEditModal();renderProject(proj);
   const r=await api({action:'updateSpaceInfo',projectId,spaceId,itemNum:space.itemNum,name:space.name,finish:space.finish,phase:space.phase,phaseNote:space.phaseNote,urgent:space.urgent});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
+}
+
+// ===== שרטוטים =====
+const DW_CATS = {
+  architect: {label:'שרטוט אדריכל', cls:'cat-architect', icon:'📐'},
+  shop:      {label:'שופ דרוינג',   cls:'cat-shop',      icon:'📝'},
+  assembly:  {label:'תוכנית הרכבה', cls:'cat-assembly',  icon:'🔧'}
+};
+const DW_ORDER = ['architect','shop','assembly'];
+
+function parseDrawings(raw){
+  if(!raw) return [];
+  try{ const a=JSON.parse(raw); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+}
+
+// המרת קישור Drive ל-URL לתצוגה מוטמעת
+function driveEmbedUrl(url){
+  if(!url) return '';
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return 'https://drive.google.com/file/d/'+m[1]+'/preview';
+  return url;
+}
+
+function renderDrawings(projectId, space){
+  const list = parseDrawings(space.drawings);
+  if(!list.length) return '';
+  let html = '<div class="drawings-section">';
+  DW_ORDER.forEach(cat=>{
+    const items = list.filter(d=>d.type===cat);
+    if(!items.length) return;
+    const c = DW_CATS[cat];
+    html += `<div class="drawings-cat">
+      <div class="drawings-cat-label">${c.icon} ${c.label}</div>
+      <div class="drawing-chips">`;
+    items.forEach(d=>{
+      const idx = list.indexOf(d);
+      html += `<span class="drawing-chip ${c.cls}" onclick="openDrawingViewer('${projectId}','${space.id}',${idx})">📄 ${esc(d.name||'שרטוט')}</span>`;
+    });
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+let dwContext = null; // {projectId, spaceId}
+
+function openDrawingsModal(){
+  if(!editContext) return;
+  dwContext = {...editContext};
+  document.getElementById('drawings-modal').classList.remove('hidden');
+  renderDrawingsList();
+}
+function closeDrawingsModal(){
+  document.getElementById('drawings-modal').classList.add('hidden');
+  dwContext = null;
+  const proj=projects.find(p=>p.id===editContext?.projectId);
+  if(proj) renderProject(proj);
+}
+
+function getDwSpace(){
+  if(!dwContext) return null;
+  const proj=projects.find(p=>p.id===dwContext.projectId);
+  return proj?.spaces.find(s=>s.id===dwContext.spaceId) || null;
+}
+
+function renderDrawingsList(){
+  const space = getDwSpace();
+  const list = parseDrawings(space?.drawings);
+  const el = document.getElementById('dw-list');
+  if(!list.length){ el.innerHTML='<div class="drawings-empty">אין שרטוטים עדיין.</div>'; return; }
+  el.innerHTML = list.map((d,i)=>{
+    const c = DW_CATS[d.type]||DW_CATS.architect;
+    return `<div class="dw-row">
+      <div class="dw-row-info">
+        <div class="dw-row-name">${c.icon} ${esc(d.name||'שרטוט')}</div>
+        <div class="dw-row-cat">${c.label}</div>
+      </div>
+      <button class="dw-row-del" onclick="deleteDrawing(${i})" title="מחק">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function persistDrawings(space){
+  const raw = JSON.stringify(parseDrawings(space.drawings));
+  space.drawings = raw;
+  const r = await api({action:'updateDrawings', projectId:dwContext.projectId, spaceId:dwContext.spaceId, drawings:raw});
+  showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
+}
+
+async function addDrawing(){
+  const space = getDwSpace();
+  if(!space) return;
+  const name = document.getElementById('dw-name').value.trim();
+  const cat  = document.getElementById('dw-cat').value;
+  const url  = document.getElementById('dw-url').value.trim();
+  if(!url){ showSnack('⚠ חסר קישור'); return; }
+  const list = parseDrawings(space.drawings);
+  list.push({type:cat, name:name||'שרטוט', url});
+  space.drawings = JSON.stringify(list);
+  document.getElementById('dw-name').value='';
+  document.getElementById('dw-url').value='';
+  renderDrawingsList();
+  await persistDrawings(space);
+}
+
+async function deleteDrawing(idx){
+  const space = getDwSpace();
+  if(!space) return;
+  const list = parseDrawings(space.drawings);
+  list.splice(idx,1);
+  space.drawings = JSON.stringify(list);
+  renderDrawingsList();
+  await persistDrawings(space);
+}
+
+function openDrawingViewer(projectId, spaceId, idx){
+  const proj=projects.find(p=>p.id===projectId);
+  const space=proj?.spaces.find(s=>s.id===spaceId);
+  const list = parseDrawings(space?.drawings);
+  const d = list[idx];
+  if(!d) return;
+  document.getElementById('dv-title').textContent = d.name||'שרטוט';
+  document.getElementById('dv-open').href = d.url;
+  document.getElementById('dv-frame').src = driveEmbedUrl(d.url);
+  document.getElementById('drawing-viewer').classList.remove('hidden');
+}
+function closeDrawingViewer(){
+  document.getElementById('drawing-viewer').classList.add('hidden');
+  document.getElementById('dv-frame').src = 'about:blank';
 }
 
 async function toggleStep(projectId,spaceId,stepKey,currentlyDone) {
