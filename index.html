@@ -314,6 +314,20 @@
   /* ===== מסך כספים ===== */
   .fin-screen { display: none; }
   .fin-screen.active { display: block; }
+  /* ===== מסך חומרים ===== */
+  .mat-screen { display: none; }
+  .mat-screen.active { display: block; }
+  .mat-card { background:#fff; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  .mat-tbl { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:8px; }
+  .mat-tbl th { text-align:right; font-size:11px; color:#aaa; font-weight:600; padding:0 4px 8px; border-bottom:1.5px solid #e8e6e0; }
+  .mat-tbl td { padding:7px 4px; border-bottom:1px solid #f0ede8; vertical-align:middle; }
+  .mat-tbl input[type=number] { width:54px; text-align:center; padding:4px; font-size:13px; border:1.5px solid #ddd; border-radius:6px; font-family:inherit; }
+  .mat-save-btn { width:100%; padding:11px; background:#2c5f8a; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-top:6px; font-family:inherit; }
+  .mat-save-btn:active { opacity:.8; }
+  .mat-add-material-btn { width:100%; padding:9px; background:#f0f4f8; color:#2c5f8a; border:1.5px dashed #aac4de; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; margin-top:4px; font-family:inherit; }
+  .mat-output { white-space:pre-wrap; font-family:monospace; font-size:13px; background:#f8f6f2; border-radius:8px; padding:12px; direction:rtl; line-height:1.7; }
+  .mat-copy-btn { width:100%; padding:11px; background:#25D366; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px; font-family:inherit; }
+  .mat-copy-btn:active { opacity:.8; }
   .fin-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   .fin-sec { font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 12px; }
   .fin-proj-seg { display: flex; border: 1.5px solid #ddd; border-radius: 8px; overflow: hidden; flex-wrap: wrap; margin-bottom: 0; }
@@ -656,6 +670,46 @@
 </div>
 
 
+<!-- מסך חומרים -->
+<div class="content mat-screen" id="mat-screen">
+  <div class="mat-card">
+    <div class="hw-sec">פרויקט</div>
+    <div class="seg" id="mat-proj-seg"></div>
+  </div>
+  <div class="mat-card">
+    <div class="hw-sub-tabs">
+      <button class="hw-sub-tab active" onclick="matShowTab('input',this)">הזנת חומרים</button>
+      <button class="hw-sub-tab" onclick="matShowTab('summary',this)">סיכום והזמנה</button>
+    </div>
+    <div id="mat-input-tab">
+      <div class="hw-sec">בחר רהיט</div>
+      <div class="furn-list-hw" id="mat-furn-list"></div>
+      <div class="hw-editor" id="mat-editor" style="display:none">
+        <div class="hw-editor-title" id="mat-editor-title"></div>
+        <table class="mat-tbl">
+          <thead><tr>
+            <th>חומר</th>
+            <th style="text-align:center">עובי</th>
+            <th style="text-align:center">פלטות</th>
+          </tr></thead>
+          <tbody id="mat-rows"></tbody>
+        </table>
+        <button class="mat-add-material-btn" onclick="matAddCustomMaterial()">+ הוסף חומר חדש למאגר</button>
+        <button class="mat-save-btn" onclick="matSaveFurniture()">✓ שמור וסיים רהיט זה</button>
+      </div>
+    </div>
+    <div id="mat-summary-tab" style="display:none">
+      <div class="hw-sec" style="margin-bottom:8px">בחר רהיטים לסיכום</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer">
+        <input type="checkbox" onchange="matToggleAll(this)" style="width:18px;height:18px;accent-color:#2c5f8a"> בחר הכל
+      </label>
+      <div id="mat-furn-checklist"></div>
+      <div id="mat-output-area"></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- מסך כספים -->
 <div class="content fin-screen" id="fin-screen">
   <div class="fin-card">
@@ -731,6 +785,10 @@
     <span class="bnav-icon">🔩</span>
     פרזול
   </button>
+  <button class="bnav-btn" id="bnav-materials" onclick="switchScreen('materials')">
+    <span class="bnav-icon">🪵</span>
+    חומרים
+  </button>
   <button class="bnav-btn" id="bnav-finance" onclick="switchScreen('finance')">
     <span class="bnav-icon">💰</span>
     כספים
@@ -784,12 +842,18 @@ function switchScreen(screen) {
   document.getElementById('main-content').style.display = screen==='production' ? '' : 'none';
   document.getElementById('hw-screen').classList.toggle('active', screen==='hardware');
   document.getElementById('fin-screen').classList.toggle('active', screen==='finance');
+  document.getElementById('mat-screen').classList.toggle('active', screen==='materials');
   document.getElementById('bnav-production').classList.toggle('active', screen==='production');
   document.getElementById('bnav-hardware').classList.toggle('active', screen==='hardware');
   document.getElementById('bnav-finance').classList.toggle('active', screen==='finance');
+  document.getElementById('bnav-materials').classList.toggle('active', screen==='materials');
   document.getElementById('tabs-container').parentElement.style.display = screen==='production' ? '' : 'none';
   if (screen==='hardware' && !hwProjectId && projects.length) {
     hwSelectProject(projects[0].id);
+  }
+  if (screen==='materials' && !matProjectId && projects.length) {
+    matBuildProjSeg();
+    matSelectProject(projects[0].id);
   }
   if (screen==='finance' && !finProjectId && projects.length) {
     finSelectProject(projects[0].id);
@@ -1570,6 +1634,226 @@ function hwCopy(){
 }
 
 function escHtml(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ===== חומרים =====
+// מאגר חומרים קבוע — ניתן להרחבה
+const MAT_DEFAULT_CATALOG = [
+  {id:'sand-gray',  name:'סנדוויץ אפור',    thick:'16.5'},
+  {id:'sand-white', name:'סנדוויץ לבן',     thick:'16.5'},
+  {id:'sand-flax',  name:'סנדוויץ פשתן',   thick:'16.5'},
+  {id:'birch-16',   name:"בירץ'",           thick:'16'},
+  {id:'birch-18',   name:"בירץ'",           thick:'18'},
+  {id:'back-gray',  name:'גב אפור (דיקט)',  thick:'5'},
+  {id:'back-white', name:'גב לבן (דיקט)',   thick:'5'},
+  {id:'back-flax',  name:'גב פשתן (דיקט)', thick:'5'},
+  {id:'mdf-green',  name:'MDF ירוק + מלמין', thick:'19'},
+];
+
+let matCatalog = [];
+let matProjectId = null;
+let matFurnList = [];
+let matCurrentFurnId = null;
+let matData = {}; // {projectId: {spaceId: {matId: qty}}}
+let matSubTab = 'input';
+
+function matLoadCatalog() {
+  try {
+    const saved = localStorage.getItem('nagaria_mat_catalog');
+    if (saved) matCatalog = JSON.parse(saved);
+    else matCatalog = [...MAT_DEFAULT_CATALOG];
+  } catch(e) { matCatalog = [...MAT_DEFAULT_CATALOG]; }
+}
+
+function matSaveCatalog() {
+  try { localStorage.setItem('nagaria_mat_catalog', JSON.stringify(matCatalog)); } catch(e) {}
+}
+
+function matBuildProjSeg() {
+  matLoadCatalog();
+  const seg = document.getElementById('mat-proj-seg');
+  if (!seg) return;
+  seg.innerHTML = projects.map((p,i) =>
+    `<button class="seg-btn ${i===0?'active':''}" onclick="matSaveFurnIfDirty();matSelectProject('${p.id}',this)">${p.name}</button>`
+  ).join('');
+}
+
+function matSelectProject(id, el) {
+  matSaveFurnIfDirty();
+  matProjectId = id;
+  if (el) {
+    document.querySelectorAll('#mat-proj-seg .seg-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  const proj = projects.find(p=>p.id===id);
+  matFurnList = proj ? proj.spaces.map(s=>({id:s.id,code:s.itemNum||'',name:s.name})) : [];
+  if (!matData[id]) matData[id] = {};
+  matCurrentFurnId = null;
+  document.getElementById('mat-editor').style.display = 'none';
+  matRenderFurnList();
+  if (matSubTab==='summary') matRenderSummaryTab();
+}
+
+function matRenderFurnList() {
+  const el = document.getElementById('mat-furn-list');
+  if (!el) return;
+  el.innerHTML = matFurnList.map(f => {
+    const hasMat = Object.values(matData[matProjectId]?.[f.id]||{}).some(q=>q>0);
+    return `<button class="hw-furn-btn ${hasMat?'has-hw':''} ${matCurrentFurnId===f.id?'active':''}"
+      onclick="matSelectFurn('${f.id}')">${f.code} ${f.name}${hasMat?' ✓':''}</button>`;
+  }).join('');
+}
+
+function matSelectFurn(id) {
+  matSaveFurnIfDirty();
+  matCurrentFurnId = id;
+  const f = matFurnList.find(x=>x.id===id);
+  document.getElementById('mat-editor-title').textContent = (f?.code||'') + ' ' + (f?.name||'');
+  document.getElementById('mat-editor').style.display = '';
+  matRenderRows();
+  matRenderFurnList();
+}
+
+function matRenderRows() {
+  const tbody = document.getElementById('mat-rows');
+  if (!tbody) return;
+  const saved = matData[matProjectId]?.[matCurrentFurnId] || {};
+  tbody.innerHTML = matCatalog.map(m => {
+    const qty = saved[m.id] || 0;
+    return `<tr>
+      <td>${m.name}</td>
+      <td style="text-align:center;color:#888">${m.thick}מ"מ</td>
+      <td style="text-align:center"><input type="number" min="0" max="99" value="${qty}"
+        id="mat-qty-${m.id}" style="width:54px" onchange="matSaveFurnLocal()"></td>
+    </tr>`;
+  }).join('');
+}
+
+function matSaveFurnLocal() {
+  if (!matCurrentFurnId) return;
+  if (!matData[matProjectId]) matData[matProjectId] = {};
+  const rows = {};
+  matCatalog.forEach(m => {
+    const el = document.getElementById('mat-qty-'+m.id);
+    const v = el ? parseInt(el.value)||0 : 0;
+    if (v > 0) rows[m.id] = v;
+  });
+  if (Object.keys(rows).length) matData[matProjectId][matCurrentFurnId] = rows;
+  else delete matData[matProjectId][matCurrentFurnId];
+}
+
+function matSaveFurnIfDirty() { if (matCurrentFurnId) matSaveFurnLocal(); }
+
+async function matSaveFurniture() {
+  matSaveFurnLocal();
+  const spaceData = matData[matProjectId]?.[matCurrentFurnId] || null;
+  const r = await api({action:'saveHardware', projectId:matProjectId+'__mat', spaceId:matCurrentFurnId, hwData:spaceData});
+  showSnack(r.success ? '✓ נשמר' : '⚠ שגיאה בשמירה');
+  matRenderFurnList();
+  const i = matFurnList.findIndex(f=>f.id===matCurrentFurnId);
+  if (i >= 0 && i < matFurnList.length-1) matSelectFurn(matFurnList[i+1].id);
+}
+
+function matAddCustomMaterial() {
+  const name = prompt('שם החומר החדש:');
+  if (!name || !name.trim()) return;
+  const thick = prompt('עובי (מ"מ):') || '';
+  const id = 'custom_' + Date.now();
+  matCatalog.push({id, name:name.trim(), thick:thick.trim()});
+  matSaveCatalog();
+  matRenderRows();
+  showSnack('✓ חומר נוסף למאגר');
+}
+
+function matShowTab(tab, el) {
+  matSubTab = tab;
+  document.getElementById('mat-input-tab').style.display = tab==='input' ? '' : 'none';
+  document.getElementById('mat-summary-tab').style.display = tab==='summary' ? '' : 'none';
+  document.querySelectorAll('.hw-sub-tab').forEach(b => {
+    if (b.closest('#mat-screen')) b.classList.remove('active');
+  });
+  if (el) el.classList.add('active');
+  if (tab==='summary') matRenderSummaryTab();
+}
+
+function matRenderSummaryTab() {
+  const el = document.getElementById('mat-furn-checklist');
+  if (!el) return;
+  el.innerHTML = matFurnList.map(f => {
+    const hasMat = Object.values(matData[matProjectId]?.[f.id]||{}).some(q=>q>0);
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="matchk-${f.id}" ${hasMat?'checked':''} ${hasMat?'':'disabled'}
+        onchange="matRenderOutput()" style="width:18px;height:18px;accent-color:#2c5f8a">
+      ${f.code} ${f.name}
+    </label>`;
+  }).join('');
+  matRenderOutput();
+}
+
+function matToggleAll(chk) {
+  matFurnList.forEach(f => {
+    const el = document.getElementById('matchk-'+f.id);
+    if (el && !el.disabled) el.checked = chk.checked;
+  });
+  matRenderOutput();
+}
+
+function matGetSelectedIds() {
+  return matFurnList.filter(f => {
+    const el = document.getElementById('matchk-'+f.id);
+    return el && el.checked;
+  }).map(f=>f.id);
+}
+
+function matRenderOutput() {
+  const ids = matGetSelectedIds();
+  const area = document.getElementById('mat-output-area');
+  if (!ids.length) { area.innerHTML='<div style="font-size:13px;color:#aaa;padding:12px 0">בחר רהיטים לסיכום</div>'; return; }
+  const proj = projects.find(p=>p.id===matProjectId);
+  const text = matBuildText(ids, proj?.name||'');
+  area.innerHTML = `<div class="mat-output">${escHtml(text)}</div>
+    <button class="mat-copy-btn" onclick="matCopy()">העתק לוואטסאפ 📋</button>`;
+}
+
+function matBuildText(ids, projName) {
+  const data = matData[matProjectId] || {};
+  const lines = [`*חומרים — ${projName}*`, ''];
+  const totals = {};
+
+  ids.forEach(id => {
+    const d = data[id]; if(!d) return;
+    const f = matFurnList.find(x=>x.id===id);
+    const fLines = [];
+    Object.entries(d).forEach(([matId, qty]) => {
+      if (!qty) return;
+      const m = matCatalog.find(x=>x.id===matId);
+      if (!m) return;
+      const label = m.thick ? `${m.name} ${m.thick}מ"מ` : m.name;
+      fLines.push(`• ${label}: ${qty} פלטות`);
+      const key = label;
+      totals[key] = (totals[key]||0) + qty;
+    });
+    if (fLines.length) {
+      lines.push(`*${f.code} ${f.name}:*`);
+      lines.push(...fLines);
+      lines.push('');
+    }
+  });
+
+  if (Object.keys(totals).length) {
+    lines.push('*סיכום כולל:*');
+    Object.entries(totals).forEach(([label, qty]) => lines.push(`• ${label}: ${qty} פלטות`));
+  }
+
+  return lines.join('\n').trim();
+}
+
+function matCopy() {
+  const ids = matGetSelectedIds();
+  const proj = projects.find(p=>p.id===matProjectId);
+  const text = matBuildText(ids, proj?.name||'');
+  navigator.clipboard.writeText(text).then(()=>showSnack('✓ הועתק ללוח')).catch(()=>showSnack('⚠ לא הועתק'));
+}
+
 
 loadData();
 
