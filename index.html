@@ -126,6 +126,8 @@
   .furniture-num  { font-size: 12px; color: #aaa; font-weight: 600; margin-bottom: 2px; }
   .furniture-name { font-size: 17px; font-weight: 700; }
   .furniture-finish { font-size: 13px; color: #777; margin-top: 3px; }
+  .furniture-finishes-inner { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+  .finish-chip { font-size: 11px; background: #f0f4f8; color: #4a6a8a; border-radius: 10px; padding: 2px 8px; border: 1px solid #d0dce8; }
   .furniture-pct  { font-size: 15px; font-weight: 600; color: #888; white-space: nowrap; }
   .furniture-pct.done { color: #43a047; }
 
@@ -575,8 +577,16 @@
       <input class="modal-input" id="edit-name" type="text" placeholder="מטבח">
     </div>
     <div class="modal-field">
-      <label class="modal-label">גמר</label>
-      <input class="modal-input" id="edit-finish" type="text" placeholder="פורניר אשה">
+      <label class="modal-label">גמר חזיתות</label>
+      <input class="modal-input" id="edit-finish" type="text" placeholder="קרוליינה טבעי">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">גמר פנים</label>
+      <input class="modal-input" id="edit-finish-inner" type="text" placeholder="אפור בהיר">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">צבע מגירות</label>
+      <input class="modal-input" id="edit-finish-drawer" type="text" placeholder="לבן">
     </div>
     <div class="modal-field">
       <label class="modal-label">שלב אספקה</label>
@@ -950,6 +960,7 @@ function renderProject(proj) {
           <div class="furniture-num">${esc(space.itemNum||'')} ${isUrgent?'<span class="urgent-badge">⚡ דחוף</span>':''}</div>
           <div class="furniture-name">${esc(space.name)}</div>
           <div class="furniture-finish">${esc(space.finish||'')}</div>
+          ${(space.finishInner||space.finishDrawer) ? `<div class="furniture-finishes-inner">${space.finishInner?`<span class="finish-chip">פנים: ${esc(space.finishInner)}</span>`:''} ${space.finishDrawer?`<span class="finish-chip">מגירות: ${esc(space.finishDrawer)}</span>`:''}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
           <div class="furniture-pct ${spPct===100?'done':''}">${spPct===100?'✓ הושלם':spPct+'%'}</div>
@@ -1076,6 +1087,8 @@ function openEditModal(projectId,spaceId) {
   document.getElementById('edit-num').value=space.itemNum||'';
   document.getElementById('edit-name').value=space.name||'';
   document.getElementById('edit-finish').value=space.finish||'';
+  document.getElementById('edit-finish-inner').value=space.finishInner||'';
+  document.getElementById('edit-finish-drawer').value=space.finishDrawer||'';
   document.getElementById('edit-phase').value=space.phase||'';
   document.getElementById('edit-phase-note').value=space.phaseNote||'';
   document.getElementById('edit-urgent').checked=!!(space.urgent);
@@ -1092,11 +1105,13 @@ async function saveEdit() {
   space.itemNum=document.getElementById('edit-num').value.trim();
   space.name=document.getElementById('edit-name').value.trim();
   space.finish=document.getElementById('edit-finish').value.trim();
+  space.finishInner=document.getElementById('edit-finish-inner').value.trim();
+  space.finishDrawer=document.getElementById('edit-finish-drawer').value.trim();
   space.phase=document.getElementById('edit-phase').value;
   space.phaseNote=document.getElementById('edit-phase-note').value.trim();
   space.urgent=document.getElementById('edit-urgent').checked;
   closeEditModal();renderProject(proj);
-  const r=await api({action:'updateSpaceInfo',projectId,spaceId,itemNum:space.itemNum,name:space.name,finish:space.finish,phase:space.phase,phaseNote:space.phaseNote,urgent:space.urgent});
+  const r=await api({action:'updateSpaceInfo',projectId,spaceId,itemNum:space.itemNum,name:space.name,finish:space.finish,finishInner:space.finishInner,finishDrawer:space.finishDrawer,phase:space.phase,phaseNote:space.phaseNote,urgent:space.urgent});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
 
@@ -1754,3 +1769,4 @@ registerSW();
 </script>
 </body>
 </html>
+
