@@ -1372,7 +1372,9 @@ async function toggleStep(projectId,spaceId,stepKey,currentlyDone) {
   if(!space)return;
   const newVal=stepKey==='fronts'?(currentlyDone?'':new Date().toISOString().slice(0,10)):!currentlyDone;
   space.steps[stepKey]=newVal;renderProject(proj);
-  const r=await api({action:'updateStep',projectId,spaceId,stepKey,value:newVal});
+  const bodyKeys=['planning','mpr','cnc','edges','assembly'];
+  const stepType=bodyKeys.includes(stepKey)?'body':'fronts';
+  const r=await api({action:'updateStep',projectId,spaceId,stepKey,stepType,value:newVal});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
 
