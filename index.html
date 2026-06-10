@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -46,7 +46,7 @@
   .tab.active { background: #f2f0eb; color: #1a1a1a; font-weight: 700; }
   .tab-alert { width: 8px; height: 8px; border-radius: 50%; background: #e53935; flex-shrink: 0; }
 
-  .content { padding: 14px 12px; max-width: 700px; margin: 0 auto; }
+  .content { padding: 14px 12px calc(80px + env(safe-area-inset-bottom)); max-width: 700px; margin: 0 auto; }
   .dashboard-grid { display: flex; flex-direction: column; gap: 14px; }
 
   .project-card {
@@ -212,19 +212,12 @@
   .modal-save { flex: 1; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
   .modal-cancel { flex: 1; background: #f0f0f0; color: #333; border: none; border-radius: 10px; padding: 14px; font-size: 16px; cursor: pointer; font-family: inherit; }
 
-  .steps-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 6px; }
-  .steps-group { margin-bottom: 10px; }
-  .steps-group-label {
-    font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: .06em;
-    margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
-  }
-  .steps-group-label.body  { color: #5a7a9a; }
-  .steps-group-label.front { color: #7a5a9a; }
+  .steps-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
   .step-btn {
-    padding: 8px 13px; font-size: 13px; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; border-radius: 8px;
     border: 2px solid #ddd; background: transparent; color: #888;
     cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 4px;
-    font-family: inherit; min-height: 40px; transition: all 0.12s;
+    font-family: inherit; min-height: 44px; transition: all 0.12s;
   }
   .step-btn:active { transform: scale(0.93); }
   .step-btn.done          { border-color: transparent; background: #fff8e1; color: #BA7517; font-weight: 700; }
@@ -267,20 +260,6 @@
   }
   .note-item:hover .note-del-btn { opacity: 1; }
   .note-item.done-note .note-del-btn { opacity: 0.5; }
-  .note-edit-btn {
-    background: none; border: none; cursor: pointer;
-    color: #bbb; font-size: 15px; line-height: 1;
-    padding: 0 2px; flex-shrink: 0; opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .note-item:hover .note-edit-btn { opacity: 1; }
-  .note-edit-area {
-    flex: 1; font-size: 14px; font-family: inherit; direction: rtl;
-    border: 1.5px solid #BA7517; border-radius: 6px;
-    padding: 4px 8px; outline: none; resize: none;
-    background: #fffdf5; color: #5a3e00; line-height: 1.5;
-    min-height: 36px;
-  }
 
   .add-note-row {
     display: flex; gap: 6px; align-items: center;
@@ -392,7 +371,9 @@
   .bottom-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: #1a1a1a; border-top: 1px solid #333;
-    display: flex; z-index: 150; height: 62px;
+    display: flex; z-index: 150;
+    height: calc(62px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .bnav-btn {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -842,17 +823,10 @@
 </nav>
 
 <script>
-const API = 'https://script.google.com/macros/s/AKfycby0MkFHzfh2A6QHJH_x0BxXMcLjhRyujsHdXrCjf42sIsfzXhelBnZH73eC7z9qRlH4/exec';
+const API = 'https://script.google.com/macros/s/AKfycbzgscCYfaQtKViLrJ8FFi2i53l_ZL15qlNIY9Dg9WTLQH1oXeP7mhFugHL2fyFZiC26/exec';
 const KEY = 'nagaria-ayal-2026';
 
-const BODY_STEPS = [
-  {key:'planning', label:'Pytha'},
-  {key:'mpr',      label:'MPR'},
-  {key:'cnc',      label:'CNC'},
-  {key:'edges',    label:'קנטים'},
-  {key:'assembly', label:'הרכבה'},
-];
-const FRONT_STEPS = [
+const STEPS = [
   {key:'planning', label:'Pytha'},
   {key:'mpr',      label:'MPR'},
   {key:'cnc',      label:'CNC'},
@@ -860,7 +834,6 @@ const FRONT_STEPS = [
   {key:'fronts',   label:'לצבעי'},
   {key:'assembly', label:'הרכבה'},
 ];
-const ALL_STEP_KEYS = ['planning','mpr','cnc','edges','fronts','assembly'];
 
 const HW_DEPTHS = [550,500,450,400,350];
 const HW_BACKS = {
@@ -918,8 +891,13 @@ function switchScreen(screen) {
 async function api(payload) {
   try {
     const res = await fetch(API, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({key:KEY,...payload})});
-    return await res.json();
-  } catch(e) { return {success:false}; }
+    const data = await res.json();
+    if (!data.success && data.error) console.error('API error:', data.error, payload.action);
+    return data;
+  } catch(e) {
+    console.error('API fetch error:', e.message, payload.action);
+    return {success:false, error:e.message};
+  }
 }
 
 async function loadData() {
@@ -962,25 +940,9 @@ function renderView() {
   else { const p=projects.find(p=>p.id===currentProjectId); if(p) renderProject(p); }
 }
 
-// Migration: convert old flat steps to stepsBody + stepsFronts
-function migrateSteps(space) {
-  if (!space.stepsBody && !space.stepsFronts) {
-    // Old format — copy to both
-    const old = space.steps || {};
-    space.stepsBody  = { ...old };
-    space.stepsFronts = { ...old };
-    delete space.stepsBody.fronts; // fronts only in stepsFronts
-  }
-  if (!space.stepsBody)  space.stepsBody  = {};
-  if (!space.stepsFronts) space.stepsFronts = {};
-}
-
 const furniturePct = sp => {
-  migrateSteps(sp);
-  const bodyDone  = BODY_STEPS.filter(s => sp.stepsBody[s.key]  === true || !!sp.stepsBody[s.key]).length;
-  const frontDone = FRONT_STEPS.filter(s => s.key==='fronts' ? !!sp.stepsFronts[s.key] : (sp.stepsFronts[s.key]===true||!!sp.stepsFronts[s.key])).length;
-  const total = BODY_STEPS.length + FRONT_STEPS.length;
-  return Math.round((bodyDone + frontDone) / total * 100);
+  const d=STEPS.filter(s=>s.key==='fronts'?!!sp.steps[s.key]:sp.steps[s.key]===true).length;
+  return Math.round(d/STEPS.length*100);
 };
 const projPct = pr => !pr.spaces.length?0:Math.round(pr.spaces.reduce((a,s)=>a+furniturePct(s),0)/pr.spaces.length);
 const fmtDate = d => { try { return new Date(d).toLocaleDateString('he-IL',{day:'numeric',month:'long'}); } catch(e){return d;} };
@@ -1042,24 +1004,21 @@ function renderProject(proj) {
       <span>⚠ ${esc(a)}</span>
       <button class="alert-del-btn" onclick="deleteAlert('${proj.id}','${esc(a)}')">×</button>
     </div>`).join('');
-  const legend = `<span class="legend-step" style="color:#5a7a9a">▪ גופים</span><span class="legend-step" style="color:#7a5a9a">▪ חזיתות</span>`;
+  const legend=STEPS.map(s=>`<span class="legend-step">${s.label}</span>`).join('');
 
   const makeCard = space => {
-    migrateSteps(space);
     const spPct=furniturePct(space);
     const notes=parseNotes(space.notes);
     const hasActive=notes.some(n=>!n.done);
     const isUrgent=!!(space.urgent);
-
-    const makeStepBtn = (s, stepsObj, type) => {
-      const done = s.key==='fronts' ? !!stepsObj[s.key] : (stepsObj[s.key]===true || !!stepsObj[s.key]);
-      const cls  = done ? (s.key==='assembly'?'done-assembly':'done') : '';
-      const dt   = s.key==='fronts' && stepsObj.fronts
-        ? `<span class="step-date">(${String(stepsObj.fronts).slice(5).replace('-','/')})</span>` : '';
-      return `<button class="step-btn ${cls}" onclick="event.stopPropagation();toggleStep('${proj.id}','${space.id}','${s.key}','${type}',${done})">${done?'✓ ':''}${s.label}${dt}</button>`;
-    };
-    const bodyBtns  = BODY_STEPS.map(s => makeStepBtn(s, space.stepsBody,  'body')).join('');
-    const frontBtns = FRONT_STEPS.map(s => makeStepBtn(s, space.stepsFronts,'front')).join('');
+    const stepBtns=STEPS.map(s=>{
+      const done=s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
+      const cls=done?(s.key==='assembly'?'done-assembly':'done'):'';
+      const dt=s.key==='fronts'&&space.steps.fronts
+        ?`<span class="step-date">(${String(space.steps.fronts).slice(5).replace('-','/')})</span>`:'';
+      return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
+        ${done?'✓ ':''}${s.label}${dt}</button>`;
+    }).join('');
 
     // בנה את רשימת ההערות
     const activeNotes = notes.filter(n => !n.done);
@@ -1069,8 +1028,7 @@ function renderProject(proj) {
       <div class="note-item ${isDone?'done-note':''}" id="ni-${space.id}-${idx}">
         <input type="checkbox" class="note-checkbox" ${isDone?'checked':''}
           onchange="toggleNote('${proj.id}','${space.id}',${idx},this.checked)">
-        <span class="note-text" id="nt-${space.id}-${idx}">${esc(n.text)}</span>
-        <button class="note-edit-btn" onclick="startEditNote('${proj.id}','${space.id}',${idx})" title="ערוך הערה">✏️</button>
+        <span class="note-text">${esc(n.text)}</span>
         <button class="note-del-btn" onclick="deleteNote('${proj.id}','${space.id}',${idx})" title="מחק הערה">×</button>
       </div>`;
 
@@ -1105,14 +1063,7 @@ function renderProject(proj) {
           <button class="edit-btn" onclick="openEditModal('${proj.id}','${space.id}')">✏️ עריכה</button>
         </div>
       </div>
-      <div class="steps-group">
-        <div class="steps-group-label body">גופים</div>
-        <div class="steps-row">${bodyBtns}</div>
-      </div>
-      <div class="steps-group">
-        <div class="steps-group-label front">חזיתות</div>
-        <div class="steps-row">${frontBtns}</div>
-      </div>
+      <div class="steps-row">${stepBtns}</div>
       ${renderDrawings(proj.id, space)}
       <div class="notes-section">
         <div class="notes-list" id="notes-list-${space.id}">
@@ -1222,47 +1173,6 @@ async function deleteNote(projectId, spaceId, noteIdx) {
   renderProject(proj);
   const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
   showSnack(r.success ? '✓ הערה נמחקה' : '⚠ שגיאה');
-}
-
-function startEditNote(projectId, spaceId, noteIdx) {
-  const textEl = document.getElementById(`nt-${spaceId}-${noteIdx}`);
-  if (!textEl) return;
-  const currentText = textEl.textContent;
-  const parent = textEl.parentElement;
-  // Replace span with textarea
-  const ta = document.createElement('textarea');
-  ta.className = 'note-edit-area';
-  ta.value = currentText;
-  ta.rows = 2;
-  textEl.replaceWith(ta);
-  ta.focus();
-  // Replace edit button with save button
-  const editBtn = parent.querySelector('.note-edit-btn');
-  if (editBtn) {
-    editBtn.textContent = '💾';
-    editBtn.title = 'שמור';
-    editBtn.onclick = () => saveEditNote(projectId, spaceId, noteIdx);
-  }
-  ta.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEditNote(projectId, spaceId, noteIdx); }
-    if (e.key === 'Escape') renderProject(projects.find(p=>p.id===projectId));
-  });
-}
-
-async function saveEditNote(projectId, spaceId, noteIdx) {
-  const proj = projects.find(p => p.id === projectId);
-  const space = proj?.spaces.find(s => s.id === spaceId);
-  if (!space) return;
-  const ta = document.querySelector(`#ni-${spaceId}-${noteIdx} .note-edit-area`);
-  if (!ta) return;
-  const newText = ta.value.trim();
-  if (!newText) return;
-  const notes = parseNotes(space.notes);
-  if (notes[noteIdx]) notes[noteIdx].text = newText;
-  space.notes = serializeNotes(notes);
-  renderProject(proj);
-  const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
-  showSnack(r.success ? '✓ הערה עודכנה' : '⚠ שגיאה');
 }
 
 function openEditModal(projectId,spaceId) {
@@ -1430,16 +1340,13 @@ function closeDrawingViewer(){
   document.getElementById('dv-frame').src = 'about:blank';
 }
 
-async function toggleStep(projectId,spaceId,stepKey,type,currentlyDone) {
+async function toggleStep(projectId,spaceId,stepKey,currentlyDone) {
   const proj=projects.find(p=>p.id===projectId);
   const space=proj?.spaces.find(s=>s.id===spaceId);
   if(!space)return;
-  migrateSteps(space);
-  const stepsObj = type==='body' ? space.stepsBody : space.stepsFronts;
-  const newVal = stepKey==='fronts' ? (currentlyDone?'':new Date().toISOString().slice(0,10)) : !currentlyDone;
-  stepsObj[stepKey] = newVal;
-  renderProject(proj);
-  const r = await api({action:'updateStep', projectId, spaceId, stepKey, stepType: type, value: newVal});
+  const newVal=stepKey==='fronts'?(currentlyDone?'':new Date().toISOString().slice(0,10)):!currentlyDone;
+  space.steps[stepKey]=newVal;renderProject(proj);
+  const r=await api({action:'updateStep',projectId,spaceId,stepKey,value:newVal});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
 }
 
