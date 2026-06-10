@@ -1737,7 +1737,7 @@ function matBuildProjSeg() {
   ).join('');
 }
 
-function matSelectProject(id, el) {
+async function matSelectProject(id, el) {
   matSaveFurnIfDirty();
   matProjectId = id;
   if (el) {
@@ -1746,9 +1746,13 @@ function matSelectProject(id, el) {
   }
   const proj = projects.find(p=>p.id===id);
   matFurnList = proj ? proj.spaces.map(s=>({id:s.id,code:s.itemNum||'',name:s.name})) : [];
-  if (!matData[id]) matData[id] = {};
   matCurrentFurnId = null;
   document.getElementById('mat-editor').style.display = 'none';
+  // טען נתונים מ-Sheets אם לא טעינו עדיין
+  if (!matData[id]) {
+    const r = await api({action:'getHardware', projectId: id+'__mat'});
+    matData[id] = (r.success && r.data) ? r.data : {};
+  }
   matRenderFurnList();
   if (matSubTab==='summary') matRenderSummaryTab();
 }
