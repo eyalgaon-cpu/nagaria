@@ -711,9 +711,21 @@
       <div style="background:#fff;border-radius:18px 18px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:80vh;overflow-y:auto;padding:20px 16px 32px">
         <div style="font-size:16px;font-weight:700;margin-bottom:14px">בחר חומר</div>
         <div id="mat-picker-list"></div>
-        <div style="border-top:1px solid #eee;margin-top:12px;padding-top:12px">
-          <button class="mat-add-material-btn" onclick="matAddCustomMaterial()">+ הוסף חומר חדש למאגר</button>
+        <div style="border-top:1px solid #eee;margin-top:12px;padding-top:12px;display:flex;gap:8px">
+          <button class="mat-add-material-btn" onclick="matAddCustomMaterial()" style="flex:1">+ הוסף חומר חדש</button>
+          <button onclick="matOpenCatalogEditor()" style="padding:9px 14px;background:#f5f0eb;color:#6b4c2a;border:1.5px solid #d4b896;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">✏️ ערוך מאגר</button>
         </div>
+      </div>
+    </div>
+
+    <!-- מודל עריכת מאגר חומרים -->
+    <div id="mat-catalog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1002;overflow-y:auto">
+      <div style="background:#fff;border-radius:18px 18px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:85vh;overflow-y:auto;padding:20px 16px 32px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:700">ניהול מאגר חומרים</div>
+          <button onclick="matCloseCatalogEditor()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa">✕</button>
+        </div>
+        <div id="mat-catalog-list"></div>
       </div>
     </div>
 
@@ -1897,6 +1909,57 @@ function matAddCustomMaterial() {
   matSaveCatalog();
   matRenderRows();
   showSnack('✓ חומר נוסף למאגר');
+}
+
+function matOpenCatalogEditor() {
+  document.getElementById('mat-picker-overlay').style.display = 'none';
+  matRenderCatalogList();
+  document.getElementById('mat-catalog-overlay').style.display = '';
+}
+
+function matCloseCatalogEditor() {
+  document.getElementById('mat-catalog-overlay').style.display = 'none';
+  matRenderRows();
+}
+
+function matRenderCatalogList() {
+  const el = document.getElementById('mat-catalog-list');
+  if (!el) return;
+  const isDefault = id => !id.startsWith('custom_');
+
+  el.innerHTML = matCatalog.map((m, idx) => {
+    const def = isDefault(m.id);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid #f0ede8">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:${def?'500':'600'}">${m.name}${def?' <span style="font-size:10px;color:#bbb;font-weight:400">ברירת מחדל</span>':''}</div>
+        ${m.thick?`<div style="font-size:12px;color:#aaa">${m.thick} מ"מ</div>`:''}
+      </div>
+      ${!def ? `
+        <button onclick="matEditMaterial(${idx})" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">✏️ ערוך</button>
+        <button onclick="matDeleteMaterial(${idx})" style="background:none;border:1px solid #ffcdd2;border-radius:8px;padding:5px 10px;font-size:12px;color:#e57373;cursor:pointer;font-family:inherit">🗑</button>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+function matEditMaterial(idx) {
+  const m = matCatalog[idx];
+  const name = prompt('שם החומר:', m.name);
+  if (!name || !name.trim()) return;
+  const thick = prompt('עובי (מ"מ):', m.thick || '');
+  matCatalog[idx] = {...m, name:name.trim(), thick:(thick||'').trim()};
+  matSaveCatalog();
+  matRenderCatalogList();
+  showSnack('✓ חומר עודכן');
+}
+
+function matDeleteMaterial(idx) {
+  const m = matCatalog[idx];
+  if (!confirm(`למחוק את "${m.name}"?`)) return;
+  matCatalog.splice(idx, 1);
+  matSaveCatalog();
+  matRenderCatalogList();
+  showSnack('✓ חומר נמחק');
 }
 
 function matShowTab(tab, el) {
