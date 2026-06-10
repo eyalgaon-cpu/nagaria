@@ -212,7 +212,11 @@
   .modal-save { flex: 1; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
   .modal-cancel { flex: 1; background: #f0f0f0; color: #333; border: none; border-radius: 10px; padding: 14px; font-size: 16px; cursor: pointer; font-family: inherit; }
 
-  .steps-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .steps-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 6px; }
+  .steps-section { margin-bottom: 10px; }
+  .steps-label { font-size: 11px; font-weight: 700; color: #aaa; margin-bottom: 5px; letter-spacing: 0.5px; }
+  .steps-label.fronts { color: #9b59b6; }
+  .steps-label.body { color: #e08c1a; }
   .step-btn {
     padding: 10px 16px; font-size: 14px; border-radius: 8px;
     border: 2px solid #ddd; background: transparent; color: #888;
@@ -826,14 +830,23 @@
 const API = 'https://script.google.com/macros/s/AKfycbz0HbvAUvz39Ekbl1w1C2H2ppik00mTqCz-zmrOwU1upc0yMUUFdcaULO0jyB_zgQLs/exec';
 const KEY = 'nagaria-ayal-2026';
 
-const STEPS = [
+const STEPS_BODY = [
   {key:'planning', label:'Pytha'},
   {key:'mpr',      label:'MPR'},
   {key:'cnc',      label:'CNC'},
   {key:'edges',    label:'קנטים'},
-  {key:'fronts',   label:'לצבעי'},
   {key:'assembly', label:'הרכבה'},
 ];
+const STEPS_FRONTS = [
+  {key:'planning_f', label:'Pytha'},
+  {key:'mpr_f',      label:'MPR'},
+  {key:'cnc_f',      label:'CNC'},
+  {key:'edges_f',    label:'קנטים'},
+  {key:'fronts',     label:'לצבעי'},
+  {key:'assembly_f', label:'הרכבה'},
+];
+// backward compat
+const STEPS = [...STEPS_BODY, ...STEPS_FRONTS];
 
 const HW_DEPTHS = [550,500,450,400,350];
 const HW_BACKS = {
@@ -940,9 +953,12 @@ function renderView() {
   else { const p=projects.find(p=>p.id===currentProjectId); if(p) renderProject(p); }
 }
 
+const stepDone = (sp, key) => key==='fronts' ? !!sp.steps[key] : sp.steps[key]===true;
 const furniturePct = sp => {
-  const d=STEPS.filter(s=>s.key==='fronts'?!!sp.steps[s.key]:sp.steps[s.key]===true).length;
-  return Math.round(d/STEPS.length*100);
+  const total = STEPS_BODY.length + STEPS_FRONTS.length;
+  const done = STEPS_BODY.filter(s=>stepDone(sp,s.key)).length +
+               STEPS_FRONTS.filter(s=>stepDone(sp,s.key)).length;
+  return Math.round(done/total*100);
 };
 const projPct = pr => !pr.spaces.length?0:Math.round(pr.spaces.reduce((a,s)=>a+furniturePct(s),0)/pr.spaces.length);
 const fmtDate = d => { try { return new Date(d).toLocaleDateString('he-IL',{day:'numeric',month:'long'}); } catch(e){return d;} };
@@ -1011,14 +1027,24 @@ function renderProject(proj) {
     const notes=parseNotes(space.notes);
     const hasActive=notes.some(n=>!n.done);
     const isUrgent=!!(space.urgent);
-    const stepBtns=STEPS.map(s=>{
-      const done=s.key==='fronts'?!!space.steps[s.key]:space.steps[s.key]===true;
-      const cls=done?(s.key==='assembly'?'done-assembly':'done'):'';
+    const mkBtn = (s) => {
+      const done=stepDone(space,s.key);
+      const cls=done?(s.key==='assembly'||s.key==='assembly_f'?'done-assembly':'done'):'';
       const dt=s.key==='fronts'&&space.steps.fronts
         ?`<span class="step-date">(${String(space.steps.fronts).slice(5).replace('-','/')})</span>`:'';
-      return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">
-        ${done?'✓ ':''}${s.label}${dt}</button>`;
-    }).join('');
+      return `<button class="step-btn ${cls}" onclick="toggleStep('${proj.id}','${space.id}','${s.key}',${done})">${done?'✓ ':''}${s.label}${dt}</button>`;
+    };
+    const bodyBtns = STEPS_BODY.map(mkBtn).join('');
+    const frontsBtns = STEPS_FRONTS.map(mkBtn).join('');
+    const stepsHTML = `
+      <div class="steps-section">
+        <div class="steps-label body">גופים</div>
+        <div class="steps-row">${bodyBtns}</div>
+      </div>
+      <div class="steps-section">
+        <div class="steps-label fronts">חזיתות</div>
+        <div class="steps-row">${frontsBtns}</div>
+      </div>`;
 
     // בנה את רשימת ההערות
     const activeNotes = notes.filter(n => !n.done);
@@ -1063,7 +1089,7 @@ function renderProject(proj) {
           <button class="edit-btn" onclick="openEditModal('${proj.id}','${space.id}')">✏️ עריכה</button>
         </div>
       </div>
-      <div class="steps-row">${stepBtns}</div>
+      ${stepsHTML}
       ${renderDrawings(proj.id, space)}
       <div class="notes-section">
         <div class="notes-list" id="notes-list-${space.id}">
