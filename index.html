@@ -331,6 +331,40 @@
   /* ===== מסך כספים ===== */
   .fin-screen { display: none; }
   .fin-screen.active { display: block; }
+  .inst-screen { display: none; }
+  .inst-screen.active { display: block; }
+
+  /* התקנות */
+  .inst-card { background: #fff; border-radius: 14px; padding: 14px 14px 10px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .inst-sec { font-size: 11px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .inst-proj-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .inst-proj-btn { padding: 8px 14px; border-radius: 20px; border: 2px solid #e0e0e0; background: transparent; font-size: 14px; font-weight: 500; color: #888; cursor: pointer; font-family: inherit; }
+  .inst-proj-btn.active { border-color: #BA7517; color: #BA7517; background: #fff8e1; font-weight: 700; }
+
+  .inst-checklist { display: flex; flex-direction: column; gap: 2px; }
+  .inst-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 8px; border-radius: 8px; cursor: pointer;
+    transition: background 0.1s;
+  }
+  .inst-item:active { background: #f5f5f5; }
+  .inst-item input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; accent-color: #2e7d32; }
+  .inst-item-label { font-size: 15px; color: #1a1a1a; flex: 1; }
+  .inst-item.checked .inst-item-label { text-decoration: line-through; color: #aaa; }
+  .inst-item-del { background: none; border: none; color: #ccc; font-size: 18px; padding: 0 4px; cursor: pointer; line-height: 1; }
+  .inst-item-del:active { color: #e53935; }
+
+  .inst-add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .inst-add-input { flex: 1; padding: 10px 12px; font-size: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-family: inherit; outline: none; background: #fafafa; }
+  .inst-add-input:focus { border-color: #BA7517; background: #fff; }
+  .inst-add-btn { padding: 10px 16px; background: #BA7517; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .inst-add-btn:active { opacity: 0.8; }
+
+  .inst-section-title { font-size: 13px; font-weight: 700; color: #555; margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
+  .inst-count-badge { font-size: 11px; background: #e0e0e0; color: #666; border-radius: 10px; padding: 2px 7px; font-weight: 600; }
+  .inst-count-badge.done { background: #e8f5e9; color: #2e7d32; }
+  .inst-count-badge.open { background: #fff3cd; color: #856404; }
+  .inst-divider { border: none; border-top: 1px solid #f0f0f0; margin: 12px 0; }
   /* ===== מסך חומרים ===== */
   .mat-screen { display: none; }
   .mat-screen.active { display: block; }
@@ -829,6 +863,42 @@
   </div>
 </div>
 
+
+<div class="content inst-screen" id="inst-screen">
+  <div class="inst-card">
+    <div class="inst-sec">פרויקט</div>
+    <div class="inst-proj-seg" id="inst-proj-seg"></div>
+  </div>
+
+  <div class="inst-card" id="inst-fixed-card">
+    <div class="inst-sec">ציוד ליציאה</div>
+    <div class="inst-section-title">
+      כלים קבועים
+      <span class="inst-count-badge done" id="inst-fixed-count"></span>
+    </div>
+    <div class="inst-checklist" id="inst-fixed-list"></div>
+    <hr class="inst-divider">
+    <div class="inst-section-title">
+      מיוחד להתקנה זו
+      <span class="inst-count-badge open" id="inst-special-count"></span>
+    </div>
+    <div class="inst-checklist" id="inst-special-list"></div>
+    <div class="inst-add-row">
+      <input class="inst-add-input" id="inst-special-input" type="text" placeholder="הוסף פריט מיוחד...">
+      <button class="inst-add-btn" onclick="instAddSpecial()">+ הוסף</button>
+    </div>
+  </div>
+
+  <div class="inst-card" id="inst-followup-card">
+    <div class="inst-sec">השלמות בשטח</div>
+    <div class="inst-checklist" id="inst-followup-list"></div>
+    <div class="inst-add-row">
+      <input class="inst-add-input" id="inst-followup-input" type="text" placeholder="חסר / לטיפול...">
+      <button class="inst-add-btn" onclick="instAddFollowup()">+ הוסף</button>
+    </div>
+  </div>
+</div>
+
 <div class="snackbar" id="snackbar"></div>
 
 <!-- ניווט תחתון -->
@@ -848,6 +918,10 @@
   <button class="bnav-btn" id="bnav-finance" onclick="switchScreen('finance')">
     <span class="bnav-icon">💰</span>
     כספים
+  </button>
+  <button class="bnav-btn" id="bnav-installation" onclick="switchScreen('installation')">
+    <span class="bnav-icon">🔧</span>
+    התקנות
   </button>
 </nav>
 
@@ -890,6 +964,10 @@ let currentProjectId = null;
 let editContext = null;
 let currentScreen = 'production';
 
+// === התקנות ===
+let instProjectId = null;
+let instData = {}; // { [projectId]: { fixed: {itemKey: bool}, special: [{text,done}], followup: [{text,done}] } }
+
 // === פרזול ===
 let hwProjectId = null;
 let hwFurnList = [];
@@ -908,10 +986,12 @@ function switchScreen(screen) {
   document.getElementById('hw-screen').classList.toggle('active', screen==='hardware');
   document.getElementById('fin-screen').classList.toggle('active', screen==='finance');
   document.getElementById('mat-screen').classList.toggle('active', screen==='materials');
+  document.getElementById('inst-screen').classList.toggle('active', screen==='installation');
   document.getElementById('bnav-production').classList.toggle('active', screen==='production');
   document.getElementById('bnav-hardware').classList.toggle('active', screen==='hardware');
   document.getElementById('bnav-finance').classList.toggle('active', screen==='finance');
   document.getElementById('bnav-materials').classList.toggle('active', screen==='materials');
+  document.getElementById('bnav-installation').classList.toggle('active', screen==='installation');
   document.getElementById('tabs-container').parentElement.style.display = screen==='production' ? '' : 'none';
   if (screen==='hardware' && !hwProjectId && projects.length) {
     hwSelectProject(projects[0].id);
@@ -922,6 +1002,9 @@ function switchScreen(screen) {
   }
   if (screen==='finance' && !finProjectId && projects.length) {
     finSelectProject(projects[0].id);
+  }
+  if (screen==='installation') {
+    instBuildProjSeg();
   }
 }
 
@@ -947,6 +1030,7 @@ async function loadData() {
     renderView();
     hwBuildProjSeg();
     finBuildProjSeg();
+    await instLoadAll();
     const now = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('last-update').textContent = 'עודכן ' + now;
   } else {
@@ -2276,6 +2360,147 @@ function checkForUpdate() {
 }
 
 registerSW();
+
+
+// ===== התקנות =====
+const INST_FIXED_ITEMS = [
+  'מסור גרונג','ארגז כלים ידניים','פטישון','מברגות','ג'יגסו',
+  'מולטיטול','דיסק','קלמרות','דבק נגרים','מסטיק אקרילי',
+  'סופר 7 הייטק','ארגז שטויות','ברגייה','מסקין טייפ','מדבקות',
+  'למלו','פלס לייזר','חצובה','פלס מים','רגל רצפה תקרה',
+  'סולם','חמורים','נייר שיוף','פוליש וקס','צבע לתיקונים',
+  'דיבל 8','דיבל 10','דיבל גבס'
+];
+
+function instGetData(projectId) {
+  if (!instData[projectId]) {
+    instData[projectId] = { fixed: {}, special: [], followup: [] };
+  }
+  return instData[projectId];
+}
+
+function instBuildProjSeg() {
+  const seg = document.getElementById('inst-proj-seg');
+  if (!seg) return;
+  seg.innerHTML = projects.map((p,i) =>
+    `<button class="inst-proj-btn ${instProjectId===p.id?'active':''}" onclick="instSelectProject('${p.id}',this)">${p.name}</button>`
+  ).join('');
+  if (!instProjectId && projects.length) instSelectProject(projects[0].id);
+  else if (instProjectId) instRender();
+}
+
+function instSelectProject(id) {
+  instProjectId = id;
+  document.querySelectorAll('.inst-proj-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === projects.find(p=>p.id===id)?.name);
+  });
+  instRender();
+}
+
+function instRender() {
+  if (!instProjectId) return;
+  const d = instGetData(instProjectId);
+
+  // קבועים
+  const fixedList = document.getElementById('inst-fixed-list');
+  const doneFixed = INST_FIXED_ITEMS.filter(k => d.fixed[k]).length;
+  document.getElementById('inst-fixed-count').textContent = doneFixed + '/' + INST_FIXED_ITEMS.length;
+  fixedList.innerHTML = INST_FIXED_ITEMS.map(item => {
+    const checked = !!d.fixed[item];
+    return `<label class="inst-item ${checked?'checked':''}">
+      <input type="checkbox" ${checked?'checked':''} onchange="instToggleFixed('${item}',this.checked)">
+      <span class="inst-item-label">${esc(item)}</span>
+    </label>`;
+  }).join('');
+
+  // מיוחדים
+  const specialList = document.getElementById('inst-special-list');
+  const doneSpecial = d.special.filter(x=>x.done).length;
+  document.getElementById('inst-special-count').textContent = doneSpecial + '/' + d.special.length;
+  specialList.innerHTML = d.special.map((item,i) =>
+    `<div class="inst-item ${item.done?'checked':''}">
+      <input type="checkbox" ${item.done?'checked':''} onchange="instToggleSpecial(${i},this.checked)">
+      <span class="inst-item-label">${esc(item.text)}</span>
+      <button class="inst-item-del" onclick="instDelSpecial(${i})">×</button>
+    </div>`
+  ).join('');
+
+  // השלמות
+  const followupList = document.getElementById('inst-followup-list');
+  const openFollowup = d.followup.filter(x=>!x.done).length;
+  followupList.innerHTML = d.followup.map((item,i) =>
+    `<div class="inst-item ${item.done?'checked':''}">
+      <input type="checkbox" ${item.done?'checked':''} onchange="instToggleFollowup(${i},this.checked)">
+      <span class="inst-item-label">${esc(item.text)}</span>
+      <button class="inst-item-del" onclick="instDelFollowup(${i})">×</button>
+    </div>`
+  ).join('');
+}
+
+function instToggleFixed(item, checked) {
+  const d = instGetData(instProjectId);
+  d.fixed[item] = checked;
+  instSave();
+  instRender();
+}
+
+function instAddSpecial() {
+  const inp = document.getElementById('inst-special-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  instGetData(instProjectId).special.push({text, done: false});
+  inp.value = '';
+  instSave();
+  instRender();
+}
+
+function instToggleSpecial(idx, checked) {
+  instGetData(instProjectId).special[idx].done = checked;
+  instSave();
+  instRender();
+}
+
+function instDelSpecial(idx) {
+  instGetData(instProjectId).special.splice(idx, 1);
+  instSave();
+  instRender();
+}
+
+function instAddFollowup() {
+  const inp = document.getElementById('inst-followup-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  instGetData(instProjectId).followup.push({text, done: false});
+  inp.value = '';
+  instSave();
+  instRender();
+}
+
+function instToggleFollowup(idx, checked) {
+  instGetData(instProjectId).followup[idx].done = checked;
+  instSave();
+  instRender();
+}
+
+function instDelFollowup(idx) {
+  instGetData(instProjectId).followup.splice(idx, 1);
+  instSave();
+  instRender();
+}
+
+async function instSave() {
+  if (!instProjectId) return;
+  const d = instGetData(instProjectId);
+  const r = await api({action:'updateInstallation', projectId: instProjectId, data: d});
+  if (!r.success) showSnack('⚠ שגיאה בשמירה');
+}
+
+async function instLoadAll() {
+  const r = await api({action:'getInstallations'});
+  if (r.success && r.data) {
+    instData = r.data;
+  }
+}
 
 </script>
 </body>
