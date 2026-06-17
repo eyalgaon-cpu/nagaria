@@ -228,6 +228,19 @@
   .step-btn.done-assembly { border-color: transparent; background: #e8f5e9; color: #2e7d32; font-weight: 700; }
   .step-date { font-size: 11px; opacity: 0.75; }
 
+  /* ===== SD – Shop Drawing ===== */
+  .sd-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .sd-btn {
+    padding: 8px 14px; font-size: 13px; border-radius: 8px;
+    border: 2px solid #ddd; background: transparent; color: #888;
+    cursor: pointer; font-weight: 700; font-family: inherit;
+    min-height: 40px; transition: all 0.12s; letter-spacing: 0.5px;
+  }
+  .sd-btn:active { transform: scale(0.93); }
+  .sd-btn.sent     { border-color: transparent; background: #fff3cd; color: #856404; }
+  .sd-btn.approved { border-color: transparent; background: #e8f5e9; color: #2e7d32; }
+  .sd-label { font-size: 11px; color: #aaa; font-weight: 500; }
+
   /* ===== הערות חדשות ===== */
   .notes-section {
     margin-top: 4px;
@@ -1048,6 +1061,10 @@ function renderProject(proj) {
     };
     const bodyBtns = STEPS_BODY.map(mkBtn).join('');
     const frontsBtns = STEPS_FRONTS.map(mkBtn).join('');
+    const sdState = space.sd || '';
+    const sdLabel = sdState === 'approved' ? '✓✓ SD אושר' : sdState === 'sent' ? '✓ SD נשלח' : 'SD';
+    const sdDesc = sdState === 'approved' ? 'אושר על ידי הלקוח' : sdState === 'sent' ? 'נשלח ללקוח, ממתין לאישור' : 'שופ דרוינג – לא נשלח';
+    const sdHTML = `<div class="sd-row"><button class="sd-btn ${sdState}" onclick="toggleSD('${proj.id}','${space.id}','${sdState}')">${sdLabel}</button><span class="sd-label">${sdDesc}</span></div>`;
     const stepsHTML = `
       <div class="steps-section">
         <div class="steps-label body">גופים</div>
@@ -1101,6 +1118,7 @@ function renderProject(proj) {
           <button class="edit-btn" onclick="openEditModal('${proj.id}','${space.id}')">✏️ עריכה</button>
         </div>
       </div>
+      ${sdHTML}
       ${stepsHTML}
       ${renderDrawings(proj.id, space)}
       <div class="notes-section">
@@ -1388,6 +1406,17 @@ async function toggleStep(projectId,spaceId,stepKey,currentlyDone) {
   const stepType=bodyKeys.includes(stepKey)?'body':'fronts';
   const r=await api({action:'updateStep',projectId,spaceId,stepKey,stepType,value:newVal});
   showSnack(r.success?'✓ נשמר':'⚠ שגיאה בשמירה');
+}
+
+async function toggleSD(projectId, spaceId, currentState) {
+  const proj = projects.find(p => p.id === projectId);
+  const space = proj?.spaces.find(s => s.id === spaceId);
+  if (!space) return;
+  const next = currentState === '' ? 'sent' : currentState === 'sent' ? 'approved' : '';
+  space.sd = next;
+  renderProject(proj);
+  const r = await api({action:'updateSD', projectId, spaceId, value: next});
+  showSnack(r.success ? '✓ נשמר' : '⚠ שגיאה בשמירה');
 }
 
 async function deleteAlert(projectId,alertText) {
