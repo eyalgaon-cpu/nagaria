@@ -891,11 +891,22 @@
 
   <div class="inst-card" id="inst-followup-card">
     <div class="inst-sec">השלמות בשטח</div>
-    <div class="inst-checklist" id="inst-followup-list"></div>
-    <div class="inst-add-row">
-      <input class="inst-add-input" id="inst-followup-input" type="text" placeholder="חסר / לטיפול...">
+
+    <!-- בחירת רהיט -->
+    <div style="margin-bottom:10px">
+      <select class="inst-add-input" id="inst-followup-space-sel" style="width:100%">
+        <option value="">-- בחר רהיט --</option>
+      </select>
+    </div>
+
+    <!-- הוספת השלמה לרהיט -->
+    <div class="inst-add-row" style="margin-bottom:14px">
+      <input class="inst-add-input" id="inst-followup-input" type="text" placeholder="מה חסר / לטיפול...">
       <button class="inst-add-btn" onclick="instAddFollowup()">+ הוסף</button>
     </div>
+
+    <!-- סיכום כל ההשלמות לפי רהיט -->
+    <div id="inst-followup-summary"></div>
   </div>
 </div>
 
@@ -2374,7 +2385,7 @@ const INST_FIXED_ITEMS = [
 
 function instGetData(projectId) {
   if (!instData[projectId]) {
-    instData[projectId] = { fixed: {}, special: [], followup: [] };
+    instData[projectId] = { fixed: {}, special: [], followup: {} }; // followup: {spaceId: [{text,done}]}
   }
   return instData[projectId];
 }
@@ -2425,16 +2436,42 @@ function instRender() {
     </div>`
   ).join('');
 
-  // השלמות
-  const followupList = document.getElementById('inst-followup-list');
-  const openFollowup = d.followup.filter(x=>!x.done).length;
-  followupList.innerHTML = d.followup.map((item,i) =>
-    `<div class="inst-item ${item.done?'checked':''}">
-      <input type="checkbox" ${item.done?'checked':''} onchange="instToggleFollowup(${i},this.checked)">
-      <span class="inst-item-label">${esc(item.text)}</span>
-      <button class="inst-item-del" onclick="instDelFollowup(${i})">×</button>
-    </div>`
-  ).join('');
+  // השלמות — populate select
+  const sel = document.getElementById('inst-followup-space-sel');
+  if (sel) {
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">-- בחר רהיט --</option>' +
+      proj.spaces.map(s => `<option value="${s.id}">${esc(s.itemNum ? s.itemNum+' — '+s.name : s.name)}</option>`).join('');
+    if (currentVal) sel.value = currentVal;
+  }
+
+  // סיכום השלמות לפי רהיט
+  const summary = document.getElementById('inst-followup-summary');
+  if (summary) {
+    const followup = d.followup || {};
+    const spaceIds = Object.keys(followup).filter(sid => followup[sid] && followup[sid].length > 0);
+    if (spaceIds.length === 0) {
+      summary.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:8px">אין השלמות עדיין</div>';
+    } else {
+      summary.innerHTML = spaceIds.map(sid => {
+        const space = proj.spaces.find(s => s.id === sid);
+        const label = space ? (space.itemNum ? space.itemNum+' — '+space.name : space.name) : sid;
+        const items = followup[sid];
+        const itemsHTML = items.map((item, i) =>
+          `<div class="inst-item ${item.done?'checked':''}">
+            <input type="checkbox" ${item.done?'checked':''} onchange="instToggleFollowup('${sid}',${i},this.checked)">
+            <span class="inst-item-label">${esc(item.text)}</span>
+            <button class="inst-item-del" onclick="instDelFollowup('${sid}',${i})">×</button>
+          </div>`
+        ).join('');
+        const open = items.filter(x=>!x.done).length;
+        return `<div style="margin-bottom:12px">
+          <div class="inst-section-title">${esc(label)}<span class="inst-count-badge ${open>0?'open':'done'}">${open} פתוח</span></div>
+          <div class="inst-checklist">${itemsHTML}</div>
+        </div>`;
+      }).join('<hr class="inst-divider">');
+    }
+  }
 }
 
 function instToggleFixed(item, checked) {
@@ -2468,24 +2505,37 @@ function instDelSpecial(idx) {
 
 function instAddFollowup() {
   const inp = document.getElementById('inst-followup-input');
+  const sel = document.getElementById('inst-followup-space-sel');
   const text = inp.value.trim();
-  if (!text) return;
-  instGetData(instProjectId).followup.push({text, done: false});
+  const spaceId = sel ? sel.value : '';
+  if (!text) { showSnack('הכנס טקסט להשלמה'); return; }
+  if (!spaceId) { showSnack('בחר רהיט קודם'); return; }
+  const d = instGetData(instProjectId);
+  if (!d.followup) d.followup = {};
+  if (!d.followup[spaceId]) d.followup[spaceId] = [];
+  d.followup[spaceId].push({text, done: false});
   inp.value = '';
   instSave();
   instRender();
 }
 
-function instToggleFollowup(idx, checked) {
-  instGetData(instProjectId).followup[idx].done = checked;
-  instSave();
-  instRender();
+function instToggleFollowup(spaceId, idx, checked) {
+  const d = instGetData(instProjectId);
+  if (d.followup && d.followup[spaceId]) {
+    d.followup[spaceId][idx].done = checked;
+    instSave();
+    instRender();
+  }
 }
 
-function instDelFollowup(idx) {
-  instGetData(instProjectId).followup.splice(idx, 1);
-  instSave();
-  instRender();
+function instDelFollowup(spaceId, idx) {
+  const d = instGetData(instProjectId);
+  if (d.followup && d.followup[spaceId]) {
+    d.followup[spaceId].splice(idx, 1);
+    if (d.followup[spaceId].length === 0) delete d.followup[spaceId];
+    instSave();
+    instRender();
+  }
 }
 
 async function instSave() {
