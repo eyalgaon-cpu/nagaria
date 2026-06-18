@@ -2411,6 +2411,8 @@ function instSelectProject(id) {
 function instRender() {
   if (!instProjectId) return;
   const d = instGetData(instProjectId);
+  const proj = projects.find(p => p.id === instProjectId);
+  if (!proj) return;
 
   // קבועים
   const fixedList = document.getElementById('inst-fixed-list');
