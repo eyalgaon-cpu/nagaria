@@ -333,6 +333,33 @@
   .fin-screen.active { display: block; }
   .inst-screen { display: none; }
   .inst-screen.active { display: block; }
+  .sup-screen { display: none; }
+  .sup-screen.active { display: block; }
+  .sup-card { background:#fff; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:16px; margin:12px 0; }
+  .sup-total-banner { background:linear-gradient(135deg,#BA7517,#d4891c); color:#fff; border-radius:14px; padding:16px 18px; margin:12px 0; display:flex; justify-content:space-between; align-items:center; }
+  .sup-total-label { font-size:14px; opacity:0.9; }
+  .sup-total-amount { font-size:24px; font-weight:700; }
+  .sup-row { display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid #f0f0f0; }
+  .sup-row:last-child { border-bottom:none; }
+  .sup-name { flex:1; font-size:15px; font-weight:600; color:#333; }
+  .sup-debt-zero { font-size:14px; color:#aaa; }
+  .sup-debt-pos { font-size:16px; font-weight:700; color:#c0392b; }
+  .sup-edit-btn { background:none; border:1px solid #ddd; border-radius:8px; padding:5px 10px; font-size:13px; cursor:pointer; color:#666; }
+  .sup-edit-btn:active { background:#f5f5f5; }
+  .sup-note { font-size:12px; color:#888; margin-top:2px; }
+  .sup-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:2000; align-items:flex-end; justify-content:center; }
+  .sup-modal-overlay.open { display:flex; }
+  .sup-modal { background:#fff; border-radius:18px 18px 0 0; padding:24px 20px 36px; width:100%; max-width:480px; }
+  .sup-modal h3 { margin:0 0 18px; font-size:17px; color:#333; }
+  .sup-modal label { display:block; font-size:13px; color:#666; margin-bottom:4px; margin-top:12px; }
+  .sup-modal input { width:100%; box-sizing:border-box; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:15px; font-family:inherit; outline:none; }
+  .sup-modal input:focus { border-color:#BA7517; }
+  .sup-modal-btns { display:flex; gap:10px; margin-top:20px; }
+  .sup-modal-save { flex:1; background:#BA7517; color:#fff; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .sup-modal-cancel { background:#f0f0f0; border:none; border-radius:10px; padding:13px 16px; font-size:15px; cursor:pointer; font-family:inherit; }
+  .sup-modal-del { background:none; border:none; color:#c0392b; font-size:13px; cursor:pointer; margin-top:10px; text-align:center; width:100%; padding:6px; font-family:inherit; }
+  .sup-add-btn { display:flex; align-items:center; gap:8px; background:none; border:2px dashed #ddd; border-radius:12px; padding:13px 16px; width:100%; font-size:14px; color:#888; cursor:pointer; font-family:inherit; margin-top:4px; }
+  .sup-add-btn:active { background:#f9f9f9; }
 
   /* התקנות */
   .inst-card { background: #fff; border-radius: 14px; padding: 14px 14px 10px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
@@ -910,6 +937,37 @@
   </div>
 </div>
 
+<!-- מסך ספקים -->
+<div class="content sup-screen" id="sup-screen">
+  <div class="sup-total-banner" id="sup-total-banner">
+    <span class="sup-total-label">סה"כ חובות פתוחים</span>
+    <span class="sup-total-amount" id="sup-total-amount">0 ₪</span>
+  </div>
+  <div class="sup-card" id="sup-list-card">
+    <div id="sup-list"></div>
+    <button class="sup-add-btn" onclick="supOpenAdd()">＋ הוסף ספק</button>
+  </div>
+</div>
+
+<!-- מודל עריכת ספק -->
+<div class="sup-modal-overlay" id="sup-modal-overlay" onclick="if(event.target===this)supCloseModal()">
+  <div class="sup-modal">
+    <h3 id="sup-modal-title">עריכת ספק</h3>
+    <input type="hidden" id="sup-modal-id">
+    <label>שם ספק</label>
+    <input type="text" id="sup-modal-name" placeholder="שם הספק">
+    <label>חוב פתוח (₪)</label>
+    <input type="number" id="sup-modal-debt" placeholder="0" inputmode="numeric">
+    <label>הערה</label>
+    <input type="text" id="sup-modal-note" placeholder="אופציונלי — חשבונית, תאריך...">
+    <div class="sup-modal-btns">
+      <button class="sup-modal-cancel" onclick="supCloseModal()">ביטול</button>
+      <button class="sup-modal-save" onclick="supSave()">שמור</button>
+    </div>
+    <button class="sup-modal-del" id="sup-modal-del-btn" onclick="supDelete()">🗑 מחק ספק</button>
+  </div>
+</div>
+
 <div class="snackbar" id="snackbar"></div>
 
 <!-- ניווט תחתון -->
@@ -933,6 +991,10 @@
   <button class="bnav-btn" id="bnav-installation" onclick="switchScreen('installation')">
     <span class="bnav-icon">🔧</span>
     התקנות
+  </button>
+  <button class="bnav-btn" id="bnav-suppliers" onclick="switchScreen('suppliers')">
+    <span class="bnav-icon">🏦</span>
+    ספקים
   </button>
 </nav>
 
@@ -998,11 +1060,13 @@ function switchScreen(screen) {
   document.getElementById('fin-screen').classList.toggle('active', screen==='finance');
   document.getElementById('mat-screen').classList.toggle('active', screen==='materials');
   document.getElementById('inst-screen').classList.toggle('active', screen==='installation');
+  document.getElementById('sup-screen').classList.toggle('active', screen==='suppliers');
   document.getElementById('bnav-production').classList.toggle('active', screen==='production');
   document.getElementById('bnav-hardware').classList.toggle('active', screen==='hardware');
   document.getElementById('bnav-finance').classList.toggle('active', screen==='finance');
   document.getElementById('bnav-materials').classList.toggle('active', screen==='materials');
   document.getElementById('bnav-installation').classList.toggle('active', screen==='installation');
+  document.getElementById('bnav-suppliers').classList.toggle('active', screen==='suppliers');
   document.getElementById('tabs-container').parentElement.style.display = screen==='production' ? '' : 'none';
   if (screen==='hardware' && !hwProjectId && projects.length) {
     hwSelectProject(projects[0].id);
@@ -1016,6 +1080,9 @@ function switchScreen(screen) {
   }
   if (screen==='installation') {
     instBuildProjSeg();
+  }
+  if (screen==='suppliers') {
+    supLoad();
   }
 }
 
@@ -2554,7 +2621,105 @@ async function instLoadAll() {
   }
 }
 
-</script>
-</body>
-</html>
+// ===== ספקים =====
+let supData = [];
+let supEditingId = null;
+
+async function supLoad() {
+  const r = await api({action:'getSuppliers'});
+  if (r.success && Array.isArray(r.data)) {
+    supData = r.data;
+  } else {
+    supData = [];
+  }
+  supRender();
+}
+
+function supRender() {
+  const total = supData.reduce((s, x) => s + (Number(x.debt) || 0), 0);
+  document.getElementById('sup-total-amount').textContent = total.toLocaleString('he-IL') + ' ₪';
+
+  const list = document.getElementById('sup-list');
+  list.innerHTML = '';
+  supData.forEach(s => {
+    const debt = Number(s.debt) || 0;
+    const debtHtml = debt > 0
+      ? `<span class="sup-debt-pos">${debt.toLocaleString('he-IL')} ₪</span>`
+      : `<span class="sup-debt-zero">אין חוב</span>`;
+    const noteHtml = s.note ? `<div class="sup-note">${s.note}</div>` : '';
+    const row = document.createElement('div');
+    row.className = 'sup-row';
+    row.innerHTML = `
+      <div style="flex:1">
+        <div class="sup-name">${s.name}</div>
+        ${noteHtml}
+      </div>
+      ${debtHtml}
+      <button class="sup-edit-btn" onclick="supOpenEdit('${s.id}')">✏️</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function supOpenEdit(supplierId) {
+  const s = supData.find(x => x.id === supplierId);
+  if (!s) return;
+  supEditingId = supplierId;
+  document.getElementById('sup-modal-title').textContent = 'עריכת ספק';
+  document.getElementById('sup-modal-id').value = supplierId;
+  document.getElementById('sup-modal-name').value = s.name;
+  document.getElementById('sup-modal-debt').value = s.debt || '';
+  document.getElementById('sup-modal-note').value = s.note || '';
+  document.getElementById('sup-modal-del-btn').style.display = '';
+  document.getElementById('sup-modal-overlay').classList.add('open');
+}
+
+function supOpenAdd() {
+  supEditingId = null;
+  document.getElementById('sup-modal-title').textContent = 'ספק חדש';
+  document.getElementById('sup-modal-id').value = '';
+  document.getElementById('sup-modal-name').value = '';
+  document.getElementById('sup-modal-debt').value = '';
+  document.getElementById('sup-modal-note').value = '';
+  document.getElementById('sup-modal-del-btn').style.display = 'none';
+  document.getElementById('sup-modal-overlay').classList.add('open');
+}
+
+function supCloseModal() {
+  document.getElementById('sup-modal-overlay').classList.remove('open');
+}
+
+async function supSave() {
+  const name = document.getElementById('sup-modal-name').value.trim();
+  if (!name) { showSnack('חסר שם ספק'); return; }
+  const debt = Number(document.getElementById('sup-modal-debt').value) || 0;
+  const note = document.getElementById('sup-modal-note').value.trim();
+  const supplierId = supEditingId || ('sup-' + Date.now());
+
+  const r = await api({action:'saveSupplier', supplierId, name, debt, note});
+  if (r.success) {
+    supCloseModal();
+    showSnack('✓ נשמר');
+    await supLoad();
+  } else {
+    showSnack('⚠ שגיאה בשמירה');
+  }
+}
+
+async function supDelete() {
+  if (!supEditingId) return;
+  const s = supData.find(x => x.id === supEditingId);
+  const name = s ? s.name : 'ספק זה';
+  if (!confirm(`למחוק את "${name}"?`)) return;
+  const r = await api({action:'deleteSupplier', supplierId: supEditingId});
+  if (r.success) {
+    supCloseModal();
+    showSnack('✓ נמחק');
+    await supLoad();
+  } else {
+    showSnack('⚠ שגיאה במחיקה');
+  }
+}
+
+
 
