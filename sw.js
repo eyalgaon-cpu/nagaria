@@ -1,7 +1,9 @@
 // Service Worker — נגרות אייל
 // גרסה: כל שינוי כאן יגרום לעדכון אוטומטי
-const CACHE_VERSION = 'nagaria-v3';
-const CACHE_FILES = ['/nagaria/', '/nagaria/index.html', '/nagaria/manifest.json'];
+const CACHE_VERSION = 'nagaria-v4';
+
+// index.html לא נשמר בקאש — תמיד נטען טרי מהרשת
+const CACHE_FILES = ['/nagaria/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -20,7 +22,17 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // תמיד קודם מהרשת, cache כגיבוי
+  const url = new URL(e.request.url);
+
+  // index.html — תמיד מהרשת, בלי קאש
+  if (url.pathname === '/nagaria/' || url.pathname === '/nagaria/index.html') {
+    e.respondWith(
+      fetch(e.request, {cache: 'no-store'}).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // שאר הקבצים — רשת קודם, קאש כגיבוי
   e.respondWith(
     fetch(e.request).then(res => {
       const clone = res.clone();
@@ -30,7 +42,6 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// הודעה ל-client כשיש עדכון
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
 });
