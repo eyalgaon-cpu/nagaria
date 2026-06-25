@@ -275,8 +275,37 @@
     padding: 0 2px; flex-shrink: 0; opacity: 0;
     transition: opacity 0.15s;
   }
-  .note-item:hover .note-del-btn { opacity: 1; }
+  .note-edit-btn {
+    background: none; border: none; cursor: pointer;
+    color: #bbb; font-size: 14px; line-height: 1;
+    padding: 0 2px; flex-shrink: 0; opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .note-item:hover .note-del-btn,
+  .note-item:hover .note-edit-btn { opacity: 1; }
   .note-item.done-note .note-del-btn { opacity: 0.5; }
+  .note-edit-area {
+    width: 100%; font-size: 14px; font-family: inherit;
+    direction: rtl; border: 1.5px solid #BA7517; border-radius: 6px;
+    padding: 5px 8px; resize: vertical; background: #fff;
+    color: #5a3e00; outline: none; box-sizing: border-box;
+  }
+  /* ייצוא התקנה */
+  .inst-export-btn {
+    background: #25D366; color: #fff; border: none; border-radius: 10px;
+    padding: 10px 16px; font-size: 14px; font-family: inherit;
+    cursor: pointer; font-weight: 600; width: 100%; margin-top: 10px;
+  }
+  .inst-export-btn:active { opacity: 0.8; }
+  .inst-export-scope {
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .inst-scope-btn {
+    flex: 1; min-width: 80px; padding: 8px 6px; border-radius: 8px;
+    border: 1.5px solid #ddd; background: #fafafa; font-size: 13px;
+    font-family: inherit; cursor: pointer; text-align: center; color: #555;
+  }
+  .inst-scope-btn.active { border-color: #BA7517; background: #fff8e1; color: #BA7517; font-weight: 700; }
 
   .add-note-row {
     display: flex; gap: 6px; align-items: center;
@@ -935,6 +964,13 @@
     <!-- סיכום כל ההשלמות לפי רהיט -->
     <div id="inst-followup-summary"></div>
   </div>
+
+  <!-- כרטיס ייצוא לוואטסאפ -->
+  <div class="inst-card" id="inst-export-card">
+    <div class="inst-sec">ייצוא להזמנה / וואטסאפ</div>
+    <div class="inst-export-scope" id="inst-export-scope"></div>
+    <button class="inst-export-btn" onclick="instExport()">📋 העתק לוואטסאפ</button>
+  </div>
 </div>
 
 <!-- מסך ספקים -->
@@ -1245,7 +1281,8 @@ function renderProject(proj) {
       <div class="note-item ${isDone?'done-note':''}" id="ni-${space.id}-${idx}">
         <input type="checkbox" class="note-checkbox" ${isDone?'checked':''}
           onchange="toggleNote('${proj.id}','${space.id}',${idx},this.checked)">
-        <span class="note-text">${esc(n.text)}</span>
+        <span class="note-text" id="nt-${space.id}-${idx}">${esc(n.text)}</span>
+        <button class="note-edit-btn" onclick="startEditNote('${proj.id}','${space.id}',${idx})" title="ערוך הערה">✏️</button>
         <button class="note-del-btn" onclick="deleteNote('${proj.id}','${space.id}',${idx})" title="מחק הערה">×</button>
       </div>`;
 
@@ -1391,6 +1428,60 @@ async function deleteNote(projectId, spaceId, noteIdx) {
   renderProject(proj);
   const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
   showSnack(r.success ? '✓ הערה נמחקה' : '⚠ שגיאה');
+}
+
+// ===== עריכת הערה inline =====
+function startEditNote(projectId, spaceId, noteIdx) {
+  const spanId = 'nt-' + spaceId + '-' + noteIdx;
+  const span = document.getElementById(spanId);
+  if (!span) return;
+  const currentText = span.textContent;
+  const ta = document.createElement('textarea');
+  ta.className = 'note-edit-area';
+  ta.value = currentText;
+  ta.rows = Math.max(2, Math.ceil(currentText.length / 30));
+  span.replaceWith(ta);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  ta.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      saveEditNote(projectId, spaceId, noteIdx, ta.value.trim());
+    }
+    if (e.key === 'Escape') {
+      cancelEditNote(projectId, spaceId, noteIdx, currentText, ta);
+    }
+  });
+  ta.addEventListener('blur', function() {
+    const val = ta.value.trim();
+    if (val && val !== currentText) {
+      saveEditNote(projectId, spaceId, noteIdx, val);
+    } else {
+      cancelEditNote(projectId, spaceId, noteIdx, currentText, ta);
+    }
+  });
+}
+
+async function saveEditNote(projectId, spaceId, noteIdx, newText) {
+  if (!newText) return;
+  const proj = projects.find(p => p.id === projectId);
+  const space = proj?.spaces.find(s => s.id === spaceId);
+  if (!space) return;
+  const notes = parseNotes(space.notes);
+  if (!notes[noteIdx]) return;
+  notes[noteIdx].text = newText;
+  space.notes = serializeNotes(notes);
+  renderProject(proj);
+  const r = await api({ action: 'updateNote', projectId, spaceId, note: space.notes });
+  showSnack(r.success ? '✓ הערה עודכנה' : '⚠ שגיאה');
+}
+
+function cancelEditNote(projectId, spaceId, noteIdx, originalText, ta) {
+  const span = document.createElement('span');
+  span.className = 'note-text';
+  span.id = 'nt-' + spaceId + '-' + noteIdx;
+  span.textContent = originalText;
+  ta.replaceWith(span);
 }
 
 function openEditModal(projectId,spaceId) {
@@ -2381,7 +2472,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=12');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
@@ -2539,6 +2630,7 @@ function instRender() {
       }).join('<hr class="inst-divider">');
     }
   }
+  instRenderExportScope();
 }
 
 function instToggleFixed(item, checked) {
@@ -2617,6 +2709,101 @@ async function instLoadAll() {
   if (r.success && r.data) {
     instData = r.data;
   }
+}
+
+// ===== ייצוא התקנה לוואטסאפ =====
+let instExportScope = 'all'; // 'all' | spaceId
+
+function instRenderExportScope() {
+  const proj = projects.find(p => p.id === instProjectId);
+  if (!proj) return;
+  const container = document.getElementById('inst-export-scope');
+  if (!container) return;
+  const buttons = [
+    { id: 'all', label: 'כולם' },
+    ...proj.spaces.map(s => ({ id: s.id, label: s.itemNum ? s.itemNum + ' ' + s.name : s.name }))
+  ];
+  container.innerHTML = buttons.map(b =>
+    `<button class="inst-scope-btn ${instExportScope===b.id?'active':''}"
+      onclick="instSetScope('${b.id}')">${esc(b.label)}</button>`
+  ).join('');
+}
+
+function instSetScope(scopeId) {
+  instExportScope = scopeId;
+  instRenderExportScope();
+}
+
+function instExport() {
+  const proj = projects.find(p => p.id === instProjectId);
+  if (!proj) return;
+  const d = instGetData(instProjectId);
+  const followup = d.followup || {};
+
+  let spacesToExport;
+  if (instExportScope === 'all') {
+    spacesToExport = proj.spaces.filter(s => followup[s.id] && followup[s.id].length > 0);
+  } else {
+    spacesToExport = proj.spaces.filter(s => s.id === instExportScope);
+  }
+
+  if (spacesToExport.length === 0) {
+    showSnack('אין פריטים לייצוא');
+    return;
+  }
+
+  // ריכוז כמויות לסיכום
+  const summary = {};
+
+  let lines = [];
+  lines.push('📋 רשימת התקנה — ' + proj.name);
+  lines.push('');
+
+  spacesToExport.forEach(s => {
+    const items = followup[s.id] || [];
+    if (items.length === 0) return;
+    const label = s.itemNum ? s.itemNum + ' — ' + s.name : s.name;
+    lines.push('🔧 ' + label + ':');
+    items.forEach(item => {
+      const prefix = item.done ? '✅' : '•';
+      lines.push(prefix + ' ' + item.text);
+      // ניסיון לחלץ כמויות (מספר + מילה)
+      const matches = item.text.match(/(\d+)\s+(\S+)/g);
+      if (matches) {
+        matches.forEach(m => {
+          const parts = m.match(/(\d+)\s+(.+)/);
+          if (parts) {
+            const qty = parseInt(parts[1]);
+            const name = parts[2].trim();
+            summary[name] = (summary[name] || 0) + qty;
+          }
+        });
+      }
+    });
+    lines.push('');
+  });
+
+  // סיכום כמויות אם יש יותר מרהיט אחד
+  if (instExportScope === 'all' && spacesToExport.length > 1 && Object.keys(summary).length > 0) {
+    lines.push('📦 סה"כ לכל ההתקנה:');
+    Object.entries(summary).forEach(([name, qty]) => {
+      lines.push('• ' + qty + ' ' + name);
+    });
+  }
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    showSnack('✓ הועתק ללוח — מוכן להדבקה בוואטסאפ');
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showSnack('✓ הועתק ללוח');
+  });
 }
 
 // ===== ספקים =====
