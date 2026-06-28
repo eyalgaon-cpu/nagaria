@@ -408,6 +408,8 @@
   .inst-item-label { font-size: 15px; color: #1a1a1a; flex: 1; }
   .inst-item.checked .inst-item-label { text-decoration: line-through; color: #aaa; }
   .inst-item-del { background: none; border: none; color: #ccc; font-size: 18px; padding: 0 4px; cursor: pointer; line-height: 1; }
+  .inst-item-edit { background: none; border: none; color: #bbb; font-size: 13px; padding: 0 3px; cursor: pointer; line-height: 1; }
+  .fin-edit-btn { background: none; border: none; color: #bbb; font-size: 13px; padding: 0 3px; cursor: pointer; line-height: 1; }
   .inst-item-del:active { color: #e53935; }
 
   .inst-add-row { display: flex; gap: 8px; margin-top: 10px; }
@@ -2381,6 +2383,7 @@ function finRender() {
           <div class="fin-row-val">${fmt(e.amt)}</div>
           <div class="fin-row-sub">כולל מע"מ: ${fmt(vat(e.amt))}</div>
         </div>
+        <button class="fin-edit-btn" onclick="startEditFinExtra(${i})">✏️</button>
         <button class="fin-del-btn" onclick="finDelExtra(${i})">×</button>
       </div>
     </div>`).join('');
@@ -2391,6 +2394,7 @@ function finRender() {
       <span class="fin-row-label">${esc(p.desc)} ${p.date?'<span class="fin-row-sub">('+p.date+')</span>':''}</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <div class="fin-row-val">${fmt(p.amt)}</div>
+        <button class="fin-edit-btn" onclick="startEditFinPayment(${i})">✏️</button>
         <button class="fin-del-btn" onclick="finDelPayment(${i})">×</button>
       </div>
     </div>`).join('');
@@ -2589,7 +2593,8 @@ function instRender() {
   specialList.innerHTML = d.special.map((item,i) =>
     `<div class="inst-item ${item.done?'checked':''}">
       <input type="checkbox" ${item.done?'checked':''} onchange="instToggleSpecial(${i},this.checked)">
-      <span class="inst-item-label">${esc(item.text)}</span>
+      <span class="inst-item-label" id="isp-${i}">${esc(item.text)}</span>
+      <button class="inst-item-edit" onclick="startEditInstSpecial(${i})">✏️</button>
       <button class="inst-item-del" onclick="instDelSpecial(${i})">×</button>
     </div>`
   ).join('');
@@ -2618,7 +2623,8 @@ function instRender() {
         const itemsHTML = items.map((item, i) =>
           `<div class="inst-item ${item.done?'checked':''}">
             <input type="checkbox" ${item.done?'checked':''} onchange="instToggleFollowup('${sid}',${i},this.checked)">
-            <span class="inst-item-label">${esc(item.text)}</span>
+            <span class="inst-item-label" id="ifl-${sid}-${i}">${esc(item.text)}</span>
+            <button class="inst-item-edit" onclick="startEditInstFollowup('${sid}',${i})">✏️</button>
             <button class="inst-item-del" onclick="instDelFollowup('${sid}',${i})">×</button>
           </div>`
         ).join('');
@@ -2752,9 +2758,6 @@ function instExport() {
     return;
   }
 
-  // ריכוז כמויות לסיכום
-  const summary = {};
-
   let lines = [];
   lines.push('📋 רשימת התקנה — ' + proj.name);
   lines.push('');
@@ -2767,29 +2770,12 @@ function instExport() {
     items.forEach(item => {
       const prefix = item.done ? '✅' : '•';
       lines.push(prefix + ' ' + item.text);
-      // ניסיון לחלץ כמויות (מספר + מילה)
-      const matches = item.text.match(/(\d+)\s+(\S+)/g);
-      if (matches) {
-        matches.forEach(m => {
-          const parts = m.match(/(\d+)\s+(.+)/);
-          if (parts) {
-            const qty = parseInt(parts[1]);
-            const name = parts[2].trim();
-            summary[name] = (summary[name] || 0) + qty;
-          }
-        });
-      }
+
     });
     lines.push('');
   });
 
-  // סיכום כמויות אם יש יותר מרהיט אחד
-  if (instExportScope === 'all' && spacesToExport.length > 1 && Object.keys(summary).length > 0) {
-    lines.push('📦 סה"כ לכל ההתקנה:');
-    Object.entries(summary).forEach(([name, qty]) => {
-      lines.push('• ' + qty + ' ' + name);
-    });
-  }
+  // סיכום אוטומטי הוסר לפי בקשה
 
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
@@ -2903,6 +2889,114 @@ async function supDelete() {
     await supLoad();
   } else {
     showSnack('⚠ שגיאה במחיקה');
+  }
+}
+
+// ===== עריכת השלמות בשטח (instFollowup) =====
+function startEditInstFollowup(spaceId, idx) {
+  const spanId = 'ifl-' + spaceId + '-' + idx;
+  const span = document.getElementById(spanId);
+  if (!span) return;
+  const orig = span.textContent;
+  const ta = document.createElement('textarea');
+  ta.className = 'note-edit-area';
+  ta.value = orig;
+  ta.rows = Math.max(2, Math.ceil(orig.length / 35));
+  span.replaceWith(ta);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  const save = () => {
+    const val = ta.value.trim();
+    if (val && val !== orig) {
+      const d = instGetData(instProjectId);
+      if (d.followup && d.followup[spaceId] && d.followup[spaceId][idx]) {
+        d.followup[spaceId][idx].text = val;
+        instSave();
+        instRender();
+        showSnack('✓ עודכן');
+      }
+    } else {
+      const sp = document.createElement('span');
+      sp.className = 'inst-item-label';
+      sp.id = spanId;
+      sp.textContent = orig;
+      ta.replaceWith(sp);
+    }
+  };
+  ta.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();save();} if(e.key==='Escape'){const sp=document.createElement('span');sp.className='inst-item-label';sp.id=spanId;sp.textContent=orig;ta.replaceWith(sp);} });
+  ta.addEventListener('blur', save);
+}
+
+// ===== עריכת כלים קבועים (instSpecial) =====
+function startEditInstSpecial(idx) {
+  const spanId = 'isp-' + idx;
+  const span = document.getElementById(spanId);
+  if (!span) return;
+  const orig = span.textContent;
+  const ta = document.createElement('textarea');
+  ta.className = 'note-edit-area';
+  ta.value = orig;
+  ta.rows = Math.max(2, Math.ceil(orig.length / 35));
+  span.replaceWith(ta);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  const save = () => {
+    const val = ta.value.trim();
+    if (val && val !== orig) {
+      const d = instGetData(instProjectId);
+      if (d.special && d.special[idx] !== undefined) {
+        d.special[idx].text = val;
+        instSave();
+        instRender();
+        showSnack('✓ עודכן');
+      }
+    } else {
+      const sp = document.createElement('span');
+      sp.className = 'inst-item-label';
+      sp.id = spanId;
+      sp.textContent = orig;
+      ta.replaceWith(sp);
+    }
+  };
+  ta.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();save();} if(e.key==='Escape'){const sp=document.createElement('span');sp.className='inst-item-label';sp.id=spanId;sp.textContent=orig;ta.replaceWith(sp);} });
+  ta.addEventListener('blur', save);
+}
+
+// ===== עריכת תשלום (finPayment) =====
+function startEditFinPayment(idx) {
+  const d = finData[finProjectId];
+  if (!d || !d.payments || !d.payments[idx]) return;
+  const p = d.payments[idx];
+  const desc = prompt('תיאור תשלום:', p.desc || '');
+  if (desc === null) return;
+  const amt = prompt('סכום:', p.amt || '');
+  if (amt === null) return;
+  const parsed = parseFloat(amt);
+  if (!isNaN(parsed) && parsed > 0) {
+    d.payments[idx].desc = desc.trim();
+    d.payments[idx].amt = parsed;
+    finSave();
+    finRender();
+    showSnack('✓ תשלום עודכן');
+  }
+}
+
+// ===== עריכת תוספת (finExtra) =====
+function startEditFinExtra(idx) {
+  const d = finData[finProjectId];
+  if (!d || !d.extras || !d.extras[idx]) return;
+  const e = d.extras[idx];
+  const desc = prompt('תיאור תוספת:', e.desc || '');
+  if (desc === null) return;
+  const amt = prompt('סכום:', e.amt || '');
+  if (amt === null) return;
+  const parsed = parseFloat(amt);
+  if (!isNaN(parsed)) {
+    d.extras[idx].desc = desc.trim();
+    d.extras[idx].amt = parsed;
+    finSave();
+    finRender();
+    showSnack('✓ תוספת עודכנה');
   }
 }
 
