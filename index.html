@@ -1126,7 +1126,7 @@ HW_COMPANIES = [
     id: 'blum', label: 'בלום',
     series: [
       { id: 'blum-legrabox', label: 'לגראבוקס', backs: ['N=66.5','M=90.5','K=128.5','C=177','F=241'], depths: [550,500,450,400,350], freeDepth: false, panel: false },
-      { id: 'blum-movento',  label: 'מובנטו',   backs: [], depths: [550,500,450,400,350], freeDepth: true, panel: false }
+      { id: 'blum-movento',  label: 'מובנטו',   backs: [], depths: [550,500,450,400,350], freeDepth: true, panel: false, woodOnly: true }
     ]
   },
   {
@@ -1139,7 +1139,7 @@ HW_COMPANIES = [
     id: 'hettich', label: 'הטיש',
     series: [
       { id: 'hettich-arcitech', label: 'ArciTech', backs: [77,101,126,186,251], depths: [550,500,450,400,350,300,270], freeDepth: false, panel: false },
-      { id: 'hettich-innotech', label: 'InnoTech', backs: [], depths: [550,500,450,400,350,300,270], freeDepth: true, panel: false }
+      { id: 'hettich-innotech', label: 'InnoTech', backs: [], depths: [550,500,450,400,350,300,270], freeDepth: true, panel: false, woodOnly: true }
     ]
   }
 ];
@@ -1888,10 +1888,10 @@ function hwRenderGroups() {
     const co = hwGetCompany(g.series);
     const coLabel = co ? co.label : '';
     const seriesLabel = series.label || '';
-    const colorLabel = g.color === 'לבן' ? 'לבן' : 'אפור';
+    const colorLabel = (series && series.woodOnly) ? '' : (' — ' + (g.color === 'לבן' ? 'לבן' : 'אפור'));
     div.innerHTML = `
       <div class="hw-group-header">
-        <span class="hw-group-title">קבוצה ${gi+1}: ${coLabel} ${seriesLabel} ${g.panel?'('+g.panel+')':''} — ${colorLabel}</span>
+        <span class="hw-group-title">קבוצה ${gi+1}: ${coLabel} ${seriesLabel} ${g.panel?'('+g.panel+')':''}${colorLabel}</span>
         ${hwGroups.length > 1 ? `<button class="hw-group-del" onclick="hwDelGroup(${gi})">×</button>` : ''}
       </div>
       ${hwBuildGroupForm(g, gi)}`;
@@ -1942,13 +1942,14 @@ function hwBuildGroupForm(g, gi) {
       style="width:100%;font-size:14px;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;direction:rtl;outline:none;">
   </div>`;
 
+  const backHeader = isWoodOnly ? '' : '<th>גב</th>';
+  const heavyInnerHeader = isWoodOnly ? '' : '<th style="text-align:center">כבד</th><th style="text-align:center">פנימית</th>';
   return `<div style="margin-bottom:6px"><div class="seg">${companyBtns}</div></div>
     ${seriesRow}${panelRow}${colorRow}
     <div style="margin-top:10px">
       <table class="hw-tbl" style="width:100%">
-        <thead><tr><th>עומק</th><th>גב</th><th>כמות</th>
-          <th style="text-align:center">כבד</th>
-          <th style="text-align:center">פנימית</th>
+        <thead><tr><th>עומק</th>${backHeader}<th>כמות</th>
+          ${heavyInnerHeader}
           ${galHeader}<th></th>
         </tr></thead>
         <tbody id="hw-group-rows-${gi}">${rowsHTML}</tbody>
@@ -1958,7 +1959,7 @@ function hwBuildGroupForm(g, gi) {
     ${dnoteRow}`;
 }
 
-function hwGroupRowHTML(gi, ri, r, backs, showGal, depths) {
+function hwGroupRowHTML(gi, ri, r, backs, showGal, depths, isWoodOnly) {
   // depth — dropdown
   const depOpts = depths.map(d => `<option value="${d}" ${String(r.dep)===String(d)?'selected':''}>${d}</option>`).join('');
   const depCell = `<select style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit"
@@ -1975,15 +1976,18 @@ function hwGroupRowHTML(gi, ri, r, backs, showGal, depths) {
 
   const galCell = showGal
     ? `<td style="text-align:center"><input type="checkbox" ${r.gallery?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].gallery=this.checked"></td>` : '';
+  const backTd = isWoodOnly ? '' : `<td>${backCell}</td>`;
+  const heavyInnerTd = isWoodOnly ? '' : `
+    <td style="text-align:center"><input type="checkbox" ${r.heavy?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].heavy=this.checked"></td>
+    <td style="text-align:center"><input type="checkbox" ${r.inner?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].inner=this.checked"></td>`;
 
   return `<tr>
     <td>${depCell}</td>
-    <td>${backCell}</td>
+    ${backTd}
     <td><input type="number" value="${r.qty||''}" min="0"
       oninput="hwGroups[${gi}].rows[${ri}].qty=parseInt(this.value)||0"
       style="width:44px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center"></td>
-    <td style="text-align:center"><input type="checkbox" ${r.heavy?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].heavy=this.checked"></td>
-    <td style="text-align:center"><input type="checkbox" ${r.inner?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].inner=this.checked"></td>
+    ${heavyInnerTd}
     ${galCell}
     <td><button class="hw-del-row" onclick="hwGroupDelRow(${gi},${ri})">×</button></td>
   </tr>`;
@@ -2817,7 +2821,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=15');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=16');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
