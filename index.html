@@ -1854,11 +1854,12 @@ let hwGroups = []; // [{series, color, panel, rows, dnote}]
 let hwActiveGroup = 0;
 
 function hwMigrateData(s) {
-  // migrate old single-group format to groups array
-  if (!s) return [{ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[], dnote:'' }];
-  if (s.groups) return s.groups;
+  const emptyRow = () => ({ dep:0, back:'', qty:0, heavy:false, inner:false, gallery:false });
+  const ensureRow = g => { if (!g.rows || g.rows.length === 0) g.rows = [emptyRow()]; return g; };
+  if (!s) return [ensureRow({ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[], dnote:'' })];
+  if (s.groups) return s.groups.map(ensureRow);
   // old format
-  return [{ series: s.series||s.company||'domicil-mobila', color: s.color||'אפור גרפיט', panel: s.panel||'', rows: s.rows||[], dnote: s.dnote||'' }];
+  return [ensureRow({ series: s.series||s.company||'domicil-mobila', color: s.color||'אפור גרפיט', panel: s.panel||'', rows: s.rows||[], dnote: s.dnote||'' })];
 }
 
 function hwLoadFurnData(id) {
@@ -1951,10 +1952,10 @@ function hwBuildGroupForm(g, gi) {
 }
 
 function hwGroupRowHTML(gi, ri, r, backs, showGal) {
+  const selOpts = backs.map(b => `<option value="${b}" ${String(r.back)===String(b)?'selected':''}>${b}</option>`).join('');
   const backCell = backs.length
-    ? `<select class="hwback-sel" onchange="hwGroups[${gi}].rows[${ri}].back=this.value">
-        ${backs.map(b=>`<option value="${b}" ${r.back==b?'selected':''}>${b}</option>`).join('')}
-      </select>`
+    ? `<select class="hwback-sel" style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit"
+        onchange="hwGroups[${gi}].rows[${ri}].back=this.value">${selOpts}</select>`
     : `<input type="number" class="hwback-free" placeholder="מ״מ" value="${r.back||''}"
         oninput="hwGroups[${gi}].rows[${ri}].back=this.value"
         style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center">`;
@@ -1989,7 +1990,10 @@ function hwGroupSetSeries(gi, sid) {
 function hwGroupSetPanel(gi, p) { hwGroups[gi].panel = p; hwRenderGroups(); }
 function hwGroupSetColor(gi, c) { hwGroups[gi].color = c; hwRenderGroups(); }
 function hwGroupAddRow(gi) {
-  hwGroups[gi].rows.push({ dep:0, back:'', qty:0, heavy:false, inner:false, gallery:false });
+  const s = hwGetSeries(hwGroups[gi].series);
+  const backs = s && !s.freeDepth ? s.backs : [];
+  const defaultBack = backs.length ? String(backs[0]) : '';
+  hwGroups[gi].rows.push({ dep:0, back:defaultBack, qty:0, heavy:false, inner:false, gallery:false });
   hwRenderGroups();
 }
 function hwGroupDelRow(gi, ri) {
@@ -1997,8 +2001,15 @@ function hwGroupDelRow(gi, ri) {
   hwRenderGroups();
 }
 function hwAddGroup() {
-  hwGroups.push({ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[{dep:0,back:'',qty:0,heavy:false,inner:false,gallery:false}], dnote:'' });
+  const s = hwGetSeries('domicil-mobila');
+  const defaultBack = s && s.backs && s.backs.length ? String(s.backs[0]) : '';
+  hwGroups.push({ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[{dep:0,back:defaultBack,qty:0,heavy:false,inner:false,gallery:false}], dnote:'' });
   hwRenderGroups();
+  // scroll to new group
+  setTimeout(() => {
+    const el = document.getElementById('hw-group-' + (hwGroups.length-1));
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
 }
 function hwDelGroup(gi) {
   if (hwGroups.length <= 1) return;
@@ -2791,7 +2802,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=13');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=14');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
