@@ -574,6 +574,17 @@
   .hw-tbl input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; accent-color: #BA7517; }
   .hw-tbl select { font-size: 13px; padding: 4px 6px; border: 1.5px solid #ddd; border-radius: 6px; font-family: inherit; }
 
+  .hw-group-card {
+    border: 1.5px solid #e8ddd0; border-radius: 12px;
+    padding: 12px; margin-bottom: 12px; background: #fdfaf7;
+    position: relative;
+  }
+  .hw-group-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .hw-group-title { font-size: 13px; font-weight: 700; color: #BA7517; }
+  .hw-group-del { background: none; border: none; color: #ccc; font-size: 18px; cursor: pointer; padding: 0; }
   .hw-add-row {
     display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #888;
     background: none; border: 1.5px dashed #ccc; border-radius: 8px;
@@ -665,49 +676,13 @@
       <div class="hw-editor" id="hw-editor" style="display:none">
         <div class="hw-editor-title" id="hw-editor-title"></div>
 
-        <div style="margin-bottom:14px;">
-          <div class="hw-sec" style="margin-bottom:6px">חברה</div>
-          <div class="seg" id="hw-company-seg"></div>
-          <div id="hw-series-row" style="margin-top:8px;display:none">
-            <div class="hw-sec" style="margin-bottom:6px">סדרה</div>
-            <div class="seg" id="hw-series-seg"></div>
-          </div>
-          <div id="hw-panel-row" style="margin-top:8px;display:none">
-            <div class="hw-sec" style="margin-bottom:6px">סוג דופן</div>
-            <div class="seg" id="hw-panel-seg"></div>
-          </div>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:flex-end;">
-            <div style="flex:1;">
-              <div class="hw-sec" style="margin-bottom:6px">צבע</div>
-              <div class="seg" id="hw-color-seg">
-                <button class="seg-btn active" onclick="hwSetColor('אפור גרפיט',this)">אפור</button>
-                <button class="seg-btn" onclick="hwSetColor('לבן',this)">לבן</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- קבוצות פרזול -->
+        <div id="hw-groups-container"></div>
 
-        <div class="hw-sec">שורות מגירות</div>
-        <table class="hw-tbl">
-          <thead>
-            <tr>
-              <th>עומק</th><th>גב</th><th>כמות</th>
-              <th style="text-align:center">כבד</th>
-              <th style="text-align:center">פנימית</th>
-              <th style="text-align:center" id="hw-th-gallery">גלריה+</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="hw-rows"></tbody>
-        </table>
-        <button class="hw-add-row" onclick="hwAddRow()">+ הוסף שורה</button>
+        <button class="hw-add-row" style="margin-bottom:14px;background:#f0f0f0;color:#555;" onclick="hwAddGroup()">＋ הוסף קבוצת פרזול נוספת</button>
 
-        <div style="margin-top:14px;">
-          <div class="hw-sec" style="margin-bottom:4px">הערה למגירות</div>
-          <input type="text" id="hw-dnote" placeholder="הערה חופשית..." style="width:100%;font-size:14px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;direction:rtl;outline:none;">
-        </div>
-        <div style="margin-top:10px;">
-          <div class="hw-sec" style="margin-bottom:4px">פרזול נוסף</div>
+        <div style="margin-top:4px;">
+          <div class="hw-sec" style="margin-bottom:4px">פרזול נוסף (צירים, קלאפות...)</div>
           <textarea id="hw-extra" rows="2" placeholder="צירים, קלאפות, ידיות..." style="width:100%;font-size:14px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;direction:rtl;outline:none;resize:vertical;"></textarea>
         </div>
         <button class="hw-save-btn" onclick="hwSaveFurniture()">✓ שמור וסיים רהיט זה</button>
@@ -1874,31 +1849,161 @@ function hwSelectFurn(id) {
   hwLoadFurnData(id);
 }
 
+// ===== GROUPS =====
+let hwGroups = []; // [{series, color, panel, rows, dnote}]
+let hwActiveGroup = 0;
+
+function hwMigrateData(s) {
+  // migrate old single-group format to groups array
+  if (!s) return [{ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[], dnote:'' }];
+  if (s.groups) return s.groups;
+  // old format
+  return [{ series: s.series||s.company||'domicil-mobila', color: s.color||'אפור גרפיט', panel: s.panel||'', rows: s.rows||[], dnote: s.dnote||'' }];
+}
+
 function hwLoadFurnData(id) {
-  const s=hwData[hwProjectId]?.[id];
-  document.getElementById('hw-dnote').value='';
-  document.getElementById('hw-extra').value='';
-  document.getElementById('hw-rows').innerHTML='';
-  hwRowId=0;
-  // defaults
-  hwCompanySerial='domicil-mobila';hwCompany='domicil';hwColor='אפור גרפיט';hwPanel='';
-  if(s){
-    // backward compat: old data used company directly as series id
-    const savedSeries = s.series || s.company || 'domicil-mobila';
-    hwCompanySerial = savedSeries;
-    const co = hwGetCompany(savedSeries);
-    hwCompany = co ? co.id : 'domicil';
-    hwColor = s.color||'אפור גרפיט';
-    hwPanel = s.panel||'';
-    document.getElementById('hw-dnote').value=s.dnote||'';
-    document.getElementById('hw-extra').value=s.extra||'';
-  }
-  hwRenderCompanySeg();
-  document.querySelectorAll('#hw-color-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===(hwColor==='לבן'?1:0)));
-  hwUpdateGalCol();
-  hwRebuildBacks();
-  if(s&&s.rows&&s.rows.length){s.rows.forEach(r=>hwAddRow(r.dep,r.back,r.qty,r.heavy,r.inner,r.gallery));return;}
-  hwAddRow();
+  const s = hwData[hwProjectId]?.[id];
+  document.getElementById('hw-extra').value = s?.extra || '';
+  hwGroups = hwMigrateData(s);
+  hwActiveGroup = 0;
+  hwRenderGroups();
+}
+
+function hwRenderGroups() {
+  const container = document.getElementById('hw-groups-container');
+  if (!container) return;
+  container.innerHTML = '';
+  hwGroups.forEach((g, gi) => {
+    const div = document.createElement('div');
+    div.className = 'hw-group-card';
+    div.id = 'hw-group-' + gi;
+    const series = hwGetSeries(g.series) || { id: g.series, label: g.series, backs: [], freeDepth: false, panel: false };
+    const co = hwGetCompany(g.series);
+    const coLabel = co ? co.label : '';
+    const seriesLabel = series.label || '';
+    const colorLabel = g.color === 'לבן' ? 'לבן' : 'אפור';
+    div.innerHTML = `
+      <div class="hw-group-header">
+        <span class="hw-group-title">קבוצה ${gi+1}: ${coLabel} ${seriesLabel} ${g.panel?'('+g.panel+')':''} — ${colorLabel}</span>
+        ${hwGroups.length > 1 ? `<button class="hw-group-del" onclick="hwDelGroup(${gi})">×</button>` : ''}
+      </div>
+      ${hwBuildGroupForm(g, gi)}`;
+    container.appendChild(div);
+  });
+}
+
+function hwBuildGroupForm(g, gi) {
+  const series = hwGetSeries(g.series) || { backs: [], freeDepth: true, panel: false };
+  const co = hwGetCompany(g.series);
+
+  // company buttons
+  const companyBtns = HW_COMPANIES.map(c =>
+    `<button class="seg-btn ${co && co.id===c.id?'active':''}"
+      onclick="hwGroupSetCompany(${gi},'${c.id}')">${esc(c.label)}</button>`
+  ).join('');
+
+  // series buttons
+  const seriesBtns = co ? co.series.map(s =>
+    `<button class="seg-btn ${g.series===s.id?'active':''}"
+      onclick="hwGroupSetSeries(${gi},'${s.id}')">${esc(s.label)}</button>`
+  ).join('') : '';
+  const seriesRow = (co && co.series.length > 1)
+    ? `<div style="margin-top:6px"><div class="hw-sec" style="margin-bottom:4px">סדרה</div><div class="seg">${seriesBtns}</div></div>` : '';
+
+  // panel
+  const panelRow = (series.panel && series.panel.length)
+    ? `<div style="margin-top:6px"><div class="hw-sec" style="margin-bottom:4px">דופן</div><div class="seg">${series.panel.map(p=>`<button class="seg-btn ${g.panel===p?'active':''}" onclick="hwGroupSetPanel(${gi},'${p}')">${esc(p)}</button>`).join('')}</div></div>` : '';
+
+  // color
+  const colorRow = `<div style="margin-top:6px"><div class="hw-sec" style="margin-bottom:4px">צבע</div><div class="seg">
+    <button class="seg-btn ${g.color!=='לבן'?'active':''}" onclick="hwGroupSetColor(${gi},'אפור גרפיט')">אפור</button>
+    <button class="seg-btn ${g.color==='לבן'?'active':''}" onclick="hwGroupSetColor(${gi},'לבן')">לבן</button>
+  </div></div>`;
+
+  // rows table
+  const backs = series.freeDepth ? [] : series.backs;
+  const showGal = g.series === 'domicil-mobila';
+  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal)).join('');
+  const galHeader = showGal ? `<th style="text-align:center">גלריה+</th>` : '';
+
+  // dnote
+  const dnoteRow = `<div style="margin-top:10px">
+    <div class="hw-sec" style="margin-bottom:4px">הערה</div>
+    <input type="text" value="${esc(g.dnote||'')}" placeholder="הערה חופשית..."
+      oninput="hwGroups[${gi}].dnote=this.value"
+      style="width:100%;font-size:14px;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;direction:rtl;outline:none;">
+  </div>`;
+
+  return `<div style="margin-bottom:6px"><div class="seg">${companyBtns}</div></div>
+    ${seriesRow}${panelRow}${colorRow}
+    <div style="margin-top:10px">
+      <table class="hw-tbl" style="width:100%">
+        <thead><tr><th>עומק</th><th>גב</th><th>כמות</th>
+          <th style="text-align:center">כבד</th>
+          <th style="text-align:center">פנימית</th>
+          ${galHeader}<th></th>
+        </tr></thead>
+        <tbody id="hw-group-rows-${gi}">${rowsHTML}</tbody>
+      </table>
+      <button class="hw-add-row" onclick="hwGroupAddRow(${gi})">+ שורה</button>
+    </div>
+    ${dnoteRow}`;
+}
+
+function hwGroupRowHTML(gi, ri, r, backs, showGal) {
+  const backCell = backs.length
+    ? `<select class="hwback-sel" onchange="hwGroups[${gi}].rows[${ri}].back=this.value">
+        ${backs.map(b=>`<option value="${b}" ${r.back==b?'selected':''}>${b}</option>`).join('')}
+      </select>`
+    : `<input type="number" class="hwback-free" placeholder="מ״מ" value="${r.back||''}"
+        oninput="hwGroups[${gi}].rows[${ri}].back=this.value"
+        style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center">`;
+  const galCell = showGal
+    ? `<td style="text-align:center"><input type="checkbox" ${r.gallery?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].gallery=this.checked"></td>` : '';
+  return `<tr>
+    <td><input type="number" value="${r.dep||''}" placeholder="מ״מ"
+      oninput="hwGroups[${gi}].rows[${ri}].dep=parseInt(this.value)||0"
+      style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center"></td>
+    <td>${backCell}</td>
+    <td><input type="number" value="${r.qty||''}" min="0"
+      oninput="hwGroups[${gi}].rows[${ri}].qty=parseInt(this.value)||0"
+      style="width:44px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center"></td>
+    <td style="text-align:center"><input type="checkbox" ${r.heavy?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].heavy=this.checked"></td>
+    <td style="text-align:center"><input type="checkbox" ${r.inner?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].inner=this.checked"></td>
+    ${galCell}
+    <td><button class="hw-del-row" onclick="hwGroupDelRow(${gi},${ri})">×</button></td>
+  </tr>`;
+}
+
+function hwGroupSetCompany(gi, coId) {
+  const co = HW_COMPANIES.find(c => c.id === coId);
+  if (co && co.series.length > 0) hwGroups[gi].series = co.series[0].id;
+  hwGroups[gi].panel = '';
+  hwRenderGroups();
+}
+function hwGroupSetSeries(gi, sid) {
+  hwGroups[gi].series = sid;
+  hwGroups[gi].panel = '';
+  hwRenderGroups();
+}
+function hwGroupSetPanel(gi, p) { hwGroups[gi].panel = p; hwRenderGroups(); }
+function hwGroupSetColor(gi, c) { hwGroups[gi].color = c; hwRenderGroups(); }
+function hwGroupAddRow(gi) {
+  hwGroups[gi].rows.push({ dep:0, back:'', qty:0, heavy:false, inner:false, gallery:false });
+  hwRenderGroups();
+}
+function hwGroupDelRow(gi, ri) {
+  hwGroups[gi].rows.splice(ri, 1);
+  hwRenderGroups();
+}
+function hwAddGroup() {
+  hwGroups.push({ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[{dep:0,back:'',qty:0,heavy:false,inner:false,gallery:false}], dnote:'' });
+  hwRenderGroups();
+}
+function hwDelGroup(gi) {
+  if (hwGroups.length <= 1) return;
+  hwGroups.splice(gi, 1);
+  hwRenderGroups();
 }
 
 function hwSaveFurnitureIfDirty(){if(hwCurrentFurnId)hwSaveFurnitureLocal();}
@@ -1906,12 +2011,18 @@ function hwSaveFurnitureIfDirty(){if(hwCurrentFurnId)hwSaveFurnitureLocal();}
 function hwSaveFurnitureLocal() {
   if(!hwCurrentFurnId)return;
   if(!hwData[hwProjectId])hwData[hwProjectId]={};
-  const rows=hwCollectRows();
-  const dnote=document.getElementById('hw-dnote').value.trim();
-  const extra=document.getElementById('hw-extra').value.trim();
-  if(rows.some(r=>r.qty>0)||dnote||extra)
-    hwData[hwProjectId][hwCurrentFurnId]={series:hwCompanySerial, company:hwCompanySerial, panel:hwPanel,color:hwColor,rows,dnote,extra};
-  else delete hwData[hwProjectId][hwCurrentFurnId];
+  const extra=document.getElementById('hw-extra')?.value.trim()||'';
+  const hasData = hwGroups.some(g => g.rows.some(r=>r.qty>0) || g.dnote);
+  if(hasData||extra) {
+    hwData[hwProjectId][hwCurrentFurnId]={ groups: hwGroups, extra,
+      // backward compat fields (for summary/export)
+      series: hwGroups[0]?.series||'domicil-mobila',
+      company: hwGroups[0]?.series||'domicil-mobila',
+      color: hwGroups[0]?.color||'אפור גרפיט',
+      rows: hwGroups[0]?.rows||[],
+      dnote: hwGroups[0]?.dnote||''
+    };
+  } else delete hwData[hwProjectId][hwCurrentFurnId];
 }
 
 async function hwSaveFurniture() {
