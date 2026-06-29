@@ -291,6 +291,19 @@
     color: #5a3e00; outline: none; box-sizing: border-box;
   }
   /* ייצוא התקנה */
+  /* רגליים וצירים */
+  .inst-hinge-card { background:#fff; border-radius:14px; padding:14px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  .inst-space-row { border-bottom:1px solid #f5f5f5; padding:10px 0; }
+  .inst-space-row:last-child { border-bottom:none; }
+  .inst-space-label { font-size:14px; font-weight:700; color:#5a3e00; margin-bottom:8px; }
+  .inst-hinge-fields { display:flex; flex-wrap:wrap; gap:8px; }
+  .inst-hinge-field { display:flex; flex-direction:column; gap:3px; min-width:80px; }
+  .inst-hinge-field label { font-size:11px; color:#888; }
+  .inst-hinge-field input { width:100%; border:1.5px solid #ddd; border-radius:8px; padding:5px 8px; font-size:14px; font-family:inherit; text-align:center; }
+  .inst-hinge-field input:focus { outline:none; border-color:#BA7517; }
+  .inst-hinge-field select { border:1.5px solid #ddd; border-radius:8px; padding:5px 6px; font-size:13px; font-family:inherit; }
+  .inst-hinge-field select:focus { outline:none; border-color:#BA7517; }
+  .inst-hinge-save { background:#BA7517; color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:13px; font-family:inherit; cursor:pointer; margin-top:8px; }
   .inst-export-btn {
     background: #25D366; color: #fff; border: none; border-radius: 10px;
     padding: 10px 16px; font-size: 14px; font-family: inherit;
@@ -972,6 +985,12 @@
       <input class="inst-add-input" id="inst-special-input" type="text" placeholder="הוסף פריט מיוחד...">
       <button class="inst-add-btn" onclick="instAddSpecial()">+ הוסף</button>
     </div>
+  </div>
+
+  <!-- כרטיס רגליים וצירים -->
+  <div class="inst-card" id="inst-hinges-card">
+    <div class="inst-sec">רגליים וצירים לפי רהיט</div>
+    <div id="inst-hinges-list"></div>
   </div>
 
   <div class="inst-card" id="inst-followup-card">
@@ -2603,8 +2622,9 @@ const INST_FIXED_ITEMS = [
 
 function instGetData(projectId) {
   if (!instData[projectId]) {
-    instData[projectId] = { fixed: {}, special: [], followup: {} }; // followup: {spaceId: [{text,done}]}
+    instData[projectId] = { fixed: {}, special: [], followup: {}, hinges: {} };
   }
+  if (!instData[projectId].hinges) instData[projectId].hinges = {};
   return instData[projectId];
 }
 
@@ -2695,6 +2715,7 @@ function instRender() {
     }
   }
   instRenderExportScope();
+  instRenderHinges();
 }
 
 function instToggleFixed(item, checked) {
@@ -3058,6 +3079,67 @@ async function supDelete() {
   } else { showSnack('⚠ שגיאה במחיקה'); }
 }
 
+
+// ===== רגליים וצירים =====
+const HINGE_TYPES = [
+  {key:'straight', label:'ישר'},
+  {key:'half',     label:'חצי'},
+  {key:'nospring', label:'ללא קפיץ'},
+  {key:'cont',     label:'המשך'},
+  {key:'pass',     label:'דלת עבר'},
+  {key:'thick',    label:'דופן עבה'},
+];
+const LEG_HEIGHTS = ['10','12'];
+
+function instRenderHinges() {
+  const container = document.getElementById('inst-hinges-list');
+  if (!container || !instProjectId) return;
+  const proj = projects.find(p => p.id === instProjectId);
+  if (!proj) return;
+  const d = instGetData(instProjectId);
+  const hinges = d.hinges || {};
+
+  container.innerHTML = proj.spaces.map(s => {
+    const h = hinges[s.id] || {};
+    const label = s.itemNum ? s.itemNum + ' — ' + s.name : s.name;
+    const hingeFields = HINGE_TYPES.map(t => `
+      <div class="inst-hinge-field">
+        <label>${t.label}</label>
+        <input type="number" min="0" placeholder="0"
+          value="${h[t.key] || ''}"
+          onchange="instUpdateHinge('${s.id}','${t.key}',this.value)">
+      </div>`).join('');
+    const legHeightSel = LEG_HEIGHTS.map(lh =>
+      `<option value="${lh}" ${(h.legH||'10')===lh?'selected':''}>${lh} ס"מ</option>`
+    ).join('');
+    return `<div class="inst-space-row">
+      <div class="inst-space-label">${esc(label)}</div>
+      <div class="inst-hinge-fields">
+        <div class="inst-hinge-field" style="min-width:110px">
+          <label>רגליים (כמות)</label>
+          <input type="number" min="0" placeholder="0"
+            value="${h.legs || ''}"
+            onchange="instUpdateHinge('${s.id}','legs',this.value)">
+        </div>
+        <div class="inst-hinge-field" style="min-width:90px">
+          <label>גובה רגל</label>
+          <select onchange="instUpdateHinge('${s.id}','legH',this.value)">
+            ${legHeightSel}
+          </select>
+        </div>
+        ${hingeFields}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function instUpdateHinge(spaceId, field, val) {
+  const d = instGetData(instProjectId);
+  if (!d.hinges[spaceId]) d.hinges[spaceId] = { legH: '10' };
+  const parsed = field === 'legH' ? val : (parseInt(val) || 0);
+  d.hinges[spaceId][field] = parsed;
+  await instSave();
+}
 
 // ===== עריכת השלמות בשטח (instFollowup) =====
 function startEditInstFollowup(spaceId, idx) {
