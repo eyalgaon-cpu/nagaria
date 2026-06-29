@@ -398,6 +398,7 @@
   .sup-entry-amt.charge { color:#c0392b; }
   .sup-entry-amt.payment { color:#27ae60; }
   .sup-entry-del { background:none; border:none; color:#ddd; font-size:16px; cursor:pointer; padding:0 2px; }
+  .sup-entry-edit { background:none; border:none; color:#bbb; font-size:13px; cursor:pointer; padding:0 2px; }
   .sup-log-actions { display:flex; gap:10px; margin-bottom:20px; }
   .sup-log-add-btn { flex:1; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
   .sup-log-add-btn.charge { background:#fdecea; color:#c0392b; }
@@ -2895,6 +2896,7 @@ function supRender() {
 // ===== לוג ספק =====
 let supCurrentId = null;
 let supEntryType = 'charge';
+let supEditingEntryIdx = -1;
 
 function supOpenLog(id) {
   supCurrentId = id;
@@ -2939,6 +2941,7 @@ function supRenderLog() {
         <div class="sup-entry-date">${e.date || ''}</div>
       </div>
       <span class="sup-entry-amt ${cls}">${sign}${Number(e.amt).toLocaleString('he-IL')} ₪</span>
+      <button class="sup-entry-edit" onclick="supEditEntry(${realIdx})">✏️</button>
       <button class="sup-entry-del" onclick="supDelEntry(${realIdx})">×</button>
     </div>`;
   }).join('');
@@ -2957,6 +2960,7 @@ function supOpenAddEntry(type) {
 
 function supCloseEntry() {
   document.getElementById('sup-entry-overlay').classList.remove('open');
+  supEditingEntryIdx = -1;
 }
 
 async function supSaveEntry() {
@@ -2967,7 +2971,14 @@ async function supSaveEntry() {
   const s = supData.find(x => x.id === supCurrentId);
   if (!s) return;
   if (!s.entries) s.entries = [];
-  s.entries.push({ type: supEntryType, amt, date, note });
+  if (supEditingEntryIdx >= 0) {
+    // עריכה
+    s.entries[supEditingEntryIdx] = { type: supEntryType, amt, date, note };
+    supEditingEntryIdx = -1;
+  } else {
+    // הוספה חדשה
+    s.entries.push({ type: supEntryType, amt, date, note });
+  }
   supCloseEntry();
   const r = await api({ action: 'saveSupplier', supplierId: s.id, name: s.name, entries: s.entries });
   if (r.success) {
@@ -3154,6 +3165,22 @@ function startEditFinExtra(idx) {
     finRender();
     showSnack('✓ תוספת עודכנה');
   }
+}
+
+// ===== עריכת רשומת ספק =====
+function supEditEntry(idx) {
+  const s = supData.find(x => x.id === supCurrentId);
+  if (!s || !s.entries || !s.entries[idx]) return;
+  const e = s.entries[idx];
+  supEntryType = e.type;
+  supEditingEntryIdx = idx;
+  document.getElementById('sup-entry-title').textContent = e.type === 'charge' ? 'עריכת חיוב' : 'עריכת תשלום';
+  document.getElementById('sup-entry-save-btn').style.background = e.type === 'charge' ? '#c0392b' : '#27ae60';
+  document.getElementById('sup-entry-date').value = e.date || '';
+  document.getElementById('sup-entry-amt').value = e.amt || '';
+  document.getElementById('sup-entry-note').value = e.note || '';
+  document.getElementById('sup-entry-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('sup-entry-amt').focus(), 100);
 }
 
 loadData();
