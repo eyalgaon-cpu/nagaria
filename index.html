@@ -1118,28 +1118,28 @@ HW_COMPANIES = [
   {
     id: 'domicil', label: 'דומיסיל',
     series: [
-      { id: 'domicil-mobila', label: 'מובילה', backs: [68,151,183], freeDepth: false, panel: false },
-      { id: 'domicil-vision', label: "ויז'ן", backs: [84,116,167,199], freeDepth: false, panel: ['פח','זכוכית'] }
+      { id: 'domicil-mobila', label: 'מובילה',  backs: [68,151,183], depths: [550,500,450,400,350], freeDepth: false, panel: false },
+      { id: 'domicil-vision', label: "ויז'ן",   backs: [84,116,167,199], depths: [550,500,450,400,350], freeDepth: false, panel: ['פח','זכוכית'] }
     ]
   },
   {
     id: 'blum', label: 'בלום',
     series: [
-      { id: 'blum-legrabox', label: 'לגראבוקס', backs: ['N=66.5','M=90.5','K=128.5','C=177','F=241'], freeDepth: false, panel: false },
-      { id: 'blum-movento',  label: 'מובנטו',   backs: [], freeDepth: true,  panel: false }
+      { id: 'blum-legrabox', label: 'לגראבוקס', backs: ['N=66.5','M=90.5','K=128.5','C=177','F=241'], depths: [550,500,450,400,350], freeDepth: false, panel: false },
+      { id: 'blum-movento',  label: 'מובנטו',   backs: [], depths: [550,500,450,400,350], freeDepth: true, panel: false }
     ]
   },
   {
     id: 'grass', label: 'גראס',
     series: [
-      { id: 'grass-scala', label: 'נובה פרו סקאלה', backs: [90,122,186], freeDepth: false, panel: false }
+      { id: 'grass-scala', label: 'נובה פרו סקאלה', backs: [90,122,186], depths: [550,500,450,400,350], freeDepth: false, panel: false }
     ]
   },
   {
     id: 'hettich', label: 'הטיש',
     series: [
-      { id: 'hettich-arcitech', label: 'ArciTech', backs: [77,101,126,186,251], freeDepth: false, panel: false },
-      { id: 'hettich-innotech', label: 'InnoTech', backs: [], freeDepth: true, panel: false }
+      { id: 'hettich-arcitech', label: 'ArciTech', backs: [77,101,126,186,251], depths: [550,500,450,400,350,300,270], freeDepth: false, panel: false },
+      { id: 'hettich-innotech', label: 'InnoTech', backs: [], depths: [550,500,450,400,350,300,270], freeDepth: true, panel: false }
     ]
   }
 ];
@@ -1855,7 +1855,13 @@ let hwActiveGroup = 0;
 
 function hwMigrateData(s) {
   const emptyRow = () => ({ dep:0, back:'', qty:0, heavy:false, inner:false, gallery:false });
-  const ensureRow = g => { if (!g.rows || g.rows.length === 0) g.rows = [emptyRow()]; return g; };
+  const emptyRowWithDef = (series) => {
+    const s = hwGetSeries(series || 'domicil-mobila');
+    const backs = s && !s.freeDepth ? s.backs : [];
+    const depths = s && s.depths ? s.depths : [550,500,450,400,350];
+    return { dep: depths[0]||550, back: backs.length ? String(backs[0]) : '', qty:0, heavy:false, inner:false, gallery:false };
+  };
+  const ensureRow = g => { if (!g.rows || g.rows.length === 0) g.rows = [emptyRowWithDef(g.series)]; return g; };
   if (!s) return [ensureRow({ series:'domicil-mobila', color:'אפור גרפיט', panel:'', rows:[], dnote:'' })];
   if (s.groups) return s.groups.map(ensureRow);
   // old format
@@ -1924,7 +1930,8 @@ function hwBuildGroupForm(g, gi) {
   // rows table
   const backs = series.freeDepth ? [] : series.backs;
   const showGal = g.series === 'domicil-mobila';
-  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal)).join('');
+  const depths = series.depths || [550,500,450,400,350];
+  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal, depths)).join('');
   const galHeader = showGal ? `<th style="text-align:center">גלריה+</th>` : '';
 
   // dnote
@@ -1951,20 +1958,26 @@ function hwBuildGroupForm(g, gi) {
     ${dnoteRow}`;
 }
 
-function hwGroupRowHTML(gi, ri, r, backs, showGal) {
-  const selOpts = backs.map(b => `<option value="${b}" ${String(r.back)===String(b)?'selected':''}>${b}</option>`).join('');
+function hwGroupRowHTML(gi, ri, r, backs, showGal, depths) {
+  // depth — dropdown
+  const depOpts = depths.map(d => `<option value="${d}" ${String(r.dep)===String(d)?'selected':''}>${d}</option>`).join('');
+  const depCell = `<select style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit"
+    onchange="hwGroups[${gi}].rows[${ri}].dep=parseInt(this.value)">${depOpts}</select>`;
+
+  // back — dropdown or free
+  const backOpts = backs.map(b => `<option value="${b}" ${String(r.back)===String(b)?'selected':''}>${b}</option>`).join('');
   const backCell = backs.length
     ? `<select class="hwback-sel" style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit"
-        onchange="hwGroups[${gi}].rows[${ri}].back=this.value">${selOpts}</select>`
+        onchange="hwGroups[${gi}].rows[${ri}].back=this.value">${backOpts}</select>`
     : `<input type="number" class="hwback-free" placeholder="מ״מ" value="${r.back||''}"
         oninput="hwGroups[${gi}].rows[${ri}].back=this.value"
         style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center">`;
+
   const galCell = showGal
     ? `<td style="text-align:center"><input type="checkbox" ${r.gallery?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].gallery=this.checked"></td>` : '';
+
   return `<tr>
-    <td><input type="number" value="${r.dep||''}" placeholder="מ״מ"
-      oninput="hwGroups[${gi}].rows[${ri}].dep=parseInt(this.value)||0"
-      style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center"></td>
+    <td>${depCell}</td>
     <td>${backCell}</td>
     <td><input type="number" value="${r.qty||''}" min="0"
       oninput="hwGroups[${gi}].rows[${ri}].qty=parseInt(this.value)||0"
@@ -1992,8 +2005,10 @@ function hwGroupSetColor(gi, c) { hwGroups[gi].color = c; hwRenderGroups(); }
 function hwGroupAddRow(gi) {
   const s = hwGetSeries(hwGroups[gi].series);
   const backs = s && !s.freeDepth ? s.backs : [];
+  const depths = s && s.depths ? s.depths : [550,500,450,400,350];
   const defaultBack = backs.length ? String(backs[0]) : '';
-  hwGroups[gi].rows.push({ dep:0, back:defaultBack, qty:0, heavy:false, inner:false, gallery:false });
+  const defaultDep = depths[0] || 550;
+  hwGroups[gi].rows.push({ dep:defaultDep, back:defaultBack, qty:0, heavy:false, inner:false, gallery:false });
   hwRenderGroups();
 }
 function hwGroupDelRow(gi, ri) {
@@ -2802,7 +2817,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=14');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=15');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
