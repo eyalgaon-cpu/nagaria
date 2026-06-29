@@ -665,22 +665,24 @@
       <div class="hw-editor" id="hw-editor" style="display:none">
         <div class="hw-editor-title" id="hw-editor-title"></div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-          <div style="flex:1;min-width:140px;">
-            <div class="hw-sec" style="margin-bottom:6px">חברה</div>
-            <div class="seg" id="hw-company-seg">
-              <button class="seg-btn active" onclick="hwSetCompany('domicil-mobila',this)">מובילה</button>
-              <button class="seg-btn" onclick="hwSetCompany('domicil-vision',this)">ויז'ן</button>
-              <button class="seg-btn" onclick="hwSetCompany('blum',this)">בלום</button>
-              <button class="seg-btn" onclick="hwSetCompany('grass',this)">גראס</button>
-              <button class="seg-btn" onclick="hwSetCompany('other',this)">אחר</button>
-            </div>
+        <div style="margin-bottom:14px;">
+          <div class="hw-sec" style="margin-bottom:6px">חברה</div>
+          <div class="seg" id="hw-company-seg"></div>
+          <div id="hw-series-row" style="margin-top:8px;display:none">
+            <div class="hw-sec" style="margin-bottom:6px">סדרה</div>
+            <div class="seg" id="hw-series-seg"></div>
           </div>
-          <div style="flex:1;min-width:100px;">
-            <div class="hw-sec" style="margin-bottom:6px">צבע</div>
-            <div class="seg" id="hw-color-seg">
-              <button class="seg-btn active" onclick="hwSetColor('אפור גרפיט',this)">אפור</button>
-              <button class="seg-btn" onclick="hwSetColor('לבן',this)">לבן</button>
+          <div id="hw-panel-row" style="margin-top:8px;display:none">
+            <div class="hw-sec" style="margin-bottom:6px">סוג דופן</div>
+            <div class="seg" id="hw-panel-seg"></div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1;">
+              <div class="hw-sec" style="margin-bottom:6px">צבע</div>
+              <div class="seg" id="hw-color-seg">
+                <button class="seg-btn active" onclick="hwSetColor('אפור גרפיט',this)">אפור</button>
+                <button class="seg-btn" onclick="hwSetColor('לבן',this)">לבן</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1136,16 +1138,57 @@ const STEPS_FRONTS = [
 const STEPS = [...STEPS_BODY, ...STEPS_FRONTS];
 
 const HW_DEPTHS = [550,500,450,400,350];
-const HW_BACKS = {
-  'domicil-mobila':[68,151,183],
-  'domicil-vision':[84,116,167,199],
-  'blum':[],'grass':[],'other':[]
-};
-const HW_COMP_LABEL = {
-  'domicil-mobila':'דומיסיל מובילה',
-  'domicil-vision':"דומיסיל ויז'ן",
-  'blum':'בלום','grass':'גראס','other':''
-};
+const // ===== מבנה פרזול — חברה → סדרות → גבהות =====
+HW_COMPANIES = [
+  {
+    id: 'domicil', label: 'דומיסיל',
+    series: [
+      { id: 'domicil-mobila', label: 'מובילה', backs: [68,151,183], freeDepth: false, panel: false },
+      { id: 'domicil-vision', label: "ויז'ן", backs: [84,116,167,199], freeDepth: false, panel: ['פח','זכוכית'] }
+    ]
+  },
+  {
+    id: 'blum', label: 'בלום',
+    series: [
+      { id: 'blum-legrabox', label: 'לגראבוקס', backs: ['N=66.5','M=90.5','K=128.5','C=177','F=241'], freeDepth: false, panel: false },
+      { id: 'blum-movento',  label: 'מובנטו',   backs: [], freeDepth: true,  panel: false }
+    ]
+  },
+  {
+    id: 'grass', label: 'גראס',
+    series: [
+      { id: 'grass-scala', label: 'נובה פרו סקאלה', backs: [90,122,186], freeDepth: false, panel: false }
+    ]
+  },
+  {
+    id: 'hettich', label: 'הטיש',
+    series: [
+      { id: 'hettich-arcitech', label: 'ArciTech', backs: [77,101,126,186,251], freeDepth: false, panel: false },
+      { id: 'hettich-innotech', label: 'InnoTech', backs: [], freeDepth: true, panel: false }
+    ]
+  }
+];
+
+// lookup helpers
+function hwGetSeries(seriesId) {
+  for (const co of HW_COMPANIES) {
+    for (const s of co.series) { if (s.id === seriesId) return s; }
+  }
+  return null;
+}
+function hwGetCompany(seriesId) {
+  for (const co of HW_COMPANIES) {
+    for (const s of co.series) { if (s.id === seriesId) return co; }
+  }
+  return null;
+}
+
+HW_BACKS = {}; // kept for backward-compat, rebuilt dynamically
+HW_COMP_LABEL = {};
+HW_COMPANIES.forEach(co => co.series.forEach(s => {
+  HW_BACKS[s.id] = s.freeDepth ? [] : s.backs;
+  HW_COMP_LABEL[s.id] = co.label + ' ' + s.label;
+}));
 
 let projects = [];
 let currentProjectId = null;
@@ -1160,7 +1203,9 @@ let instData = {}; // { [projectId]: { fixed: {itemKey: bool}, special: [{text,d
 let hwProjectId = null;
 let hwFurnList = [];
 let hwCurrentFurnId = null;
-let hwCompany = 'domicil-mobila';
+let hwCompany = 'domicil';
+let hwCompanySerial = 'domicil-mobila';
+let hwPanel = '';
 let hwColor = 'אפור גרפיט';
 let hwRowId = 0;
 let hwData = {};
@@ -1835,20 +1880,24 @@ function hwLoadFurnData(id) {
   document.getElementById('hw-extra').value='';
   document.getElementById('hw-rows').innerHTML='';
   hwRowId=0;
-  hwCompany='domicil-mobila';hwColor='אפור גרפיט';
-  document.querySelectorAll('#hw-company-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
-  document.querySelectorAll('#hw-color-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
-  hwUpdateGalCol();
+  // defaults
+  hwCompanySerial='domicil-mobila';hwCompany='domicil';hwColor='אפור גרפיט';hwPanel='';
   if(s){
-    hwCompany=s.company||'domicil-mobila';hwColor=s.color||'אפור גרפיט';
+    // backward compat: old data used company directly as series id
+    const savedSeries = s.series || s.company || 'domicil-mobila';
+    hwCompanySerial = savedSeries;
+    const co = hwGetCompany(savedSeries);
+    hwCompany = co ? co.id : 'domicil';
+    hwColor = s.color||'אפור גרפיט';
+    hwPanel = s.panel||'';
     document.getElementById('hw-dnote').value=s.dnote||'';
     document.getElementById('hw-extra').value=s.extra||'';
-    const ci=['domicil-mobila','domicil-vision','blum','grass','other'].indexOf(hwCompany);
-    document.querySelectorAll('#hw-company-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===ci));
-    document.querySelectorAll('#hw-color-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===(hwColor==='לבן'?1:0)));
-    hwUpdateGalCol();
-    if(s.rows&&s.rows.length){s.rows.forEach(r=>hwAddRow(r.dep,r.back,r.qty,r.heavy,r.inner,r.gallery));return;}
   }
+  hwRenderCompanySeg();
+  document.querySelectorAll('#hw-color-seg .seg-btn').forEach((b,i)=>b.classList.toggle('active',i===(hwColor==='לבן'?1:0)));
+  hwUpdateGalCol();
+  hwRebuildBacks();
+  if(s&&s.rows&&s.rows.length){s.rows.forEach(r=>hwAddRow(r.dep,r.back,r.qty,r.heavy,r.inner,r.gallery));return;}
   hwAddRow();
 }
 
@@ -1861,7 +1910,7 @@ function hwSaveFurnitureLocal() {
   const dnote=document.getElementById('hw-dnote').value.trim();
   const extra=document.getElementById('hw-extra').value.trim();
   if(rows.some(r=>r.qty>0)||dnote||extra)
-    hwData[hwProjectId][hwCurrentFurnId]={company:hwCompany,color:hwColor,rows,dnote,extra};
+    hwData[hwProjectId][hwCurrentFurnId]={series:hwCompanySerial, company:hwCompanySerial, panel:hwPanel,color:hwColor,rows,dnote,extra};
   else delete hwData[hwProjectId][hwCurrentFurnId];
 }
 
@@ -1880,10 +1929,83 @@ async function hwSaveFurniture() {
   }
 }
 
+function hwRenderCompanySeg() {
+  const seg = document.getElementById('hw-company-seg');
+  if (!seg) return;
+  seg.innerHTML = HW_COMPANIES.map(co =>
+    `<button class="seg-btn ${hwCompany===co.id?'active':''}"
+      onclick="hwSetCompanyId('${co.id}')">${esc(co.label)}</button>`
+  ).join('');
+  hwRenderSeriesSeg();
+}
+
+function hwSetCompanyId(coId) {
+  hwCompany = coId;
+  // default to first series
+  const co = HW_COMPANIES.find(c => c.id === coId);
+  if (co && co.series.length > 0) {
+    hwSetSeries(co.series[0].id);
+  }
+  hwRenderCompanySeg();
+}
+
+function hwRenderSeriesSeg() {
+  const co = HW_COMPANIES.find(c => c.id === hwCompany);
+  const seriesRow = document.getElementById('hw-series-row');
+  const seriesSeg = document.getElementById('hw-series-seg');
+  if (!co || !seriesSeg) return;
+  if (co.series.length <= 1) {
+    if (seriesRow) seriesRow.style.display = 'none';
+    if (co.series.length === 1) hwCompanySerial = co.series[0].id;
+  } else {
+    if (seriesRow) seriesRow.style.display = 'block';
+    seriesSeg.innerHTML = co.series.map(s =>
+      `<button class="seg-btn ${hwCompanySerial===s.id?'active':''}"
+        onclick="hwSetSeries('${s.id}')">${esc(s.label)}</button>`
+    ).join('');
+  }
+  hwRenderPanelSeg();
+}
+
+function hwSetSeries(seriesId) {
+  hwCompanySerial = seriesId;
+  // update hwCompany to match
+  const co = hwGetCompany(seriesId);
+  if (co) hwCompany = co.id;
+  hwRenderSeriesSeg();
+  hwUpdateGalCol();
+  hwRebuildBacks();
+}
+
+function hwRenderPanelSeg() {
+  const s = hwGetSeries(hwCompanySerial);
+  const panelRow = document.getElementById('hw-panel-row');
+  const panelSeg = document.getElementById('hw-panel-seg');
+  if (!panelRow || !panelSeg) return;
+  if (!s || !s.panel || !s.panel.length) {
+    panelRow.style.display = 'none';
+    hwPanel = '';
+    return;
+  }
+  panelRow.style.display = 'block';
+  if (!hwPanel) hwPanel = s.panel[0];
+  panelSeg.innerHTML = s.panel.map(p =>
+    `<button class="seg-btn ${hwPanel===p?'active':''}"
+      onclick="hwSetPanel('${p}')">${esc(p)}</button>`
+  ).join('');
+}
+
+function hwSetPanel(p) {
+  hwPanel = p;
+  hwRenderPanelSeg();
+}
+
 function hwSetCompany(c,el){
-  hwCompany=c;
-  document.querySelectorAll('#hw-company-seg .seg-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');hwUpdateGalCol();hwRebuildBacks();
+  // backward compat — called from old code
+  hwCompanySerial = c;
+  const co = hwGetCompany(c);
+  if (co) hwCompany = co.id;
+  hwUpdateGalCol(); hwRebuildBacks();
 }
 function hwSetColor(c,el){
   hwColor=c;
@@ -1891,7 +2013,7 @@ function hwSetColor(c,el){
   el.classList.add('active');
 }
 function hwUpdateGalCol(){
-  const show=hwCompany==='domicil-mobila';
+  const show=hwCompanySerial==='domicil-mobila';
   document.getElementById('hw-th-gallery').style.display=show?'':'none';
   document.querySelectorAll('[id^="hwgal-"]').forEach(c=>c.style.display=show?'':'none');
 }
@@ -1899,7 +2021,7 @@ function hwRebuildBacks(){
   document.querySelectorAll('[id^="hwback-cell-"]').forEach(cell=>{cell.innerHTML=hwBackInput(null);});
 }
 function hwBackInput(val){
-  const backs=HW_BACKS[hwCompany];
+  const backs=HW_BACKS[hwCompanySerial];
   if(!backs||!backs.length)return`<input type="number" class="hwback-free" placeholder="מ״מ" style="width:54px;font-size:13px;padding:4px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit;text-align:center" value="${val||''}">`;
   return`<select class="hwback-sel" style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit">${backs.map(b=>`<option value="${b}" ${b==val?'selected':''}>${b}</option>`).join('')}</select>`;
 }
