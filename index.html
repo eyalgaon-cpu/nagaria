@@ -1902,6 +1902,7 @@ function hwRenderGroups() {
 function hwBuildGroupForm(g, gi) {
   const series = hwGetSeries(g.series) || { backs: [], freeDepth: true, panel: false };
   const co = hwGetCompany(g.series);
+  const isWoodOnly = !!series.woodOnly;
 
   // company buttons
   const companyBtns = HW_COMPANIES.map(c =>
@@ -1921,17 +1922,17 @@ function hwBuildGroupForm(g, gi) {
   const panelRow = (series.panel && series.panel.length)
     ? `<div style="margin-top:6px"><div class="hw-sec" style="margin-bottom:4px">דופן</div><div class="seg">${series.panel.map(p=>`<button class="seg-btn ${g.panel===p?'active':''}" onclick="hwGroupSetPanel(${gi},'${p}')">${esc(p)}</button>`).join('')}</div></div>` : '';
 
-  // color
-  const colorRow = `<div style="margin-top:6px"><div class="hw-sec" style="margin-bottom:4px">צבע</div><div class="seg">
+  // color — only for non-wood
+  const colorRow = isWoodOnly ? '' : `<div style="margin-top:6px"><div class="hw-sec" style="margin-bottom:4px">צבע</div><div class="seg">
     <button class="seg-btn ${g.color!=='לבן'?'active':''}" onclick="hwGroupSetColor(${gi},'אפור גרפיט')">אפור</button>
     <button class="seg-btn ${g.color==='לבן'?'active':''}" onclick="hwGroupSetColor(${gi},'לבן')">לבן</button>
   </div></div>`;
 
   // rows table
-  const backs = series.freeDepth ? [] : series.backs;
+  const backs = (isWoodOnly || series.freeDepth) ? [] : series.backs;
   const showGal = g.series === 'domicil-mobila';
   const depths = series.depths || [550,500,450,400,350];
-  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal, depths)).join('');
+  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal, depths, isWoodOnly)).join('');
   const galHeader = showGal ? `<th style="text-align:center">גלריה+</th>` : '';
 
   // dnote
@@ -2821,7 +2822,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=16');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=17');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
