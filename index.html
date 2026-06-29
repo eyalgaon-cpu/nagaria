@@ -2483,9 +2483,12 @@ function finCalc() {
   const d = finData[finProjectId] || {base:0,extras:[],payments:[]};
   const base = parseFloat(document.getElementById('fin-base')?.value)||0;
   const extrasTotal = (d.extras||[]).reduce((s,e)=>s+parseFloat(e.amt||0),0);
+  // תשלומים מוזנים כולל מע"מ — אין להוסיף מע"מ
   const paidTotal = (d.payments||[]).reduce((s,p)=>s+parseFloat(p.amt||0),0);
   const total = base + extrasTotal;
-  const balance = total - paidTotal;
+  const totalWithVat = Math.round(total*(1+VAT));
+  // יתרה = סה"כ כולל מע"מ פחות תשלומים (שכבר כוללים מע"מ)
+  const balance = totalWithVat - paidTotal;
   const vat = v => Math.round(v*(1+VAT));
   const fmt = v => Number(Math.round(v)).toLocaleString('he-IL') + ' ₪';
 
@@ -2498,11 +2501,13 @@ function finCalc() {
   const baseVat = document.getElementById('fin-base-vat');
 
   if(totalPre) totalPre.textContent = fmt(total);
-  if(totalVat) totalVat.textContent = `כולל מע"מ: ${fmt(vat(total))}`;
+  if(totalVat) totalVat.textContent = `כולל מע"מ: ${fmt(totalWithVat)}`;
+  // תשלומים — כבר כוללים מע"מ, מציגים כמו שהם
   if(paidEl) paidEl.textContent = fmt(paidTotal);
-  if(paidVat) paidVat.textContent = `כולל מע"מ: ${fmt(vat(paidTotal))}`;
+  if(paidVat) paidVat.textContent = `(כולל מע"מ)`;
+  // יתרה = סה"כ+מע"מ פחות שולם
   if(balEl) { balEl.textContent = fmt(balance); balEl.style.color = balance>0?'#BA7517':'#2e7d32'; }
-  if(balVat) balVat.textContent = `כולל מע"מ: ${fmt(vat(balance))}`;
+  if(balVat) balVat.textContent = fmt(balance);
   if(baseVat && base) baseVat.textContent = `כולל מע"מ: ${fmt(vat(base))}`;
 }
 
