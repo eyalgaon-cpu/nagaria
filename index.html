@@ -376,6 +376,32 @@
   .sup-edit-btn { background:none; border:1px solid #ddd; border-radius:8px; padding:5px 10px; font-size:13px; cursor:pointer; color:#666; }
   .sup-edit-btn:active { background:#f5f5f5; }
   .sup-note { font-size:12px; color:#888; margin-top:2px; }
+  /* לוג ספק */
+  .sup-log-panel { display:none; }
+  .sup-log-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .sup-log-back { background:none; border:none; font-size:15px; color:#BA7517; cursor:pointer; font-family:inherit; padding:4px 0; }
+  .sup-log-title { flex:1; font-size:17px; font-weight:700; color:#2d2d2d; }
+  .sup-edit-name-btn { background:none; border:none; font-size:14px; cursor:pointer; }
+  .sup-log-balance-card { background:#fff; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,0.08); text-align:center; }
+  .sup-log-balance-label { font-size:13px; color:#888; margin-bottom:4px; }
+  .sup-log-balance-amount { font-size:28px; font-weight:700; color:#c0392b; }
+  .sup-log-balance-amount.zero { color:#aaa; }
+  .sup-log-balance-sub { font-size:12px; color:#aaa; margin-top:4px; }
+  .sup-log-entries { background:#fff; border-radius:14px; padding:6px 14px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  .sup-entry-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f5f5f5; }
+  .sup-entry-row:last-child { border-bottom:none; }
+  .sup-entry-type { font-size:18px; flex-shrink:0; }
+  .sup-entry-info { flex:1; }
+  .sup-entry-desc { font-size:14px; color:#333; }
+  .sup-entry-date { font-size:12px; color:#aaa; margin-top:2px; }
+  .sup-entry-amt { font-size:15px; font-weight:700; flex-shrink:0; }
+  .sup-entry-amt.charge { color:#c0392b; }
+  .sup-entry-amt.payment { color:#27ae60; }
+  .sup-entry-del { background:none; border:none; color:#ddd; font-size:16px; cursor:pointer; padding:0 2px; }
+  .sup-log-actions { display:flex; gap:10px; margin-bottom:20px; }
+  .sup-log-add-btn { flex:1; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .sup-log-add-btn.charge { background:#fdecea; color:#c0392b; }
+  .sup-log-add-btn.payment { background:#e8f5e9; color:#27ae60; }
   .sup-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:2000; align-items:flex-end; justify-content:center; }
   .sup-modal-overlay.open { display:flex; }
   .sup-modal { background:#fff; border-radius:18px 18px 0 0; padding:24px 20px 36px; width:100%; max-width:480px; }
@@ -985,24 +1011,55 @@
     <div id="sup-list"></div>
     <button class="sup-add-btn" onclick="supOpenAdd()">＋ הוסף ספק</button>
   </div>
+  <!-- פאנל לוג ספק -->
+  <div class="sup-log-panel" id="sup-log-panel" style="display:none">
+    <div class="sup-log-header">
+      <button class="sup-log-back" onclick="supCloseLog()">← חזור</button>
+      <div class="sup-log-title" id="sup-log-title"></div>
+      <button class="sup-edit-name-btn" onclick="supOpenEditName()">✏️</button>
+    </div>
+    <div class="sup-log-balance-card">
+      <div class="sup-log-balance-label">יתרה לתשלום</div>
+      <div class="sup-log-balance-amount" id="sup-log-balance">0 ₪</div>
+      <div class="sup-log-balance-sub" id="sup-log-balance-sub"></div>
+    </div>
+    <div id="sup-log-entries"></div>
+    <div class="sup-log-actions">
+      <button class="sup-log-add-btn charge" onclick="supOpenAddEntry('charge')">＋ חיוב</button>
+      <button class="sup-log-add-btn payment" onclick="supOpenAddEntry('payment')">＋ תשלום</button>
+    </div>
+  </div>
 </div>
 
-<!-- מודל עריכת ספק -->
+<!-- מודל הוספת/עריכת ספק -->
 <div class="sup-modal-overlay" id="sup-modal-overlay" onclick="if(event.target===this)supCloseModal()">
   <div class="sup-modal">
-    <h3 id="sup-modal-title">עריכת ספק</h3>
+    <h3 id="sup-modal-title">ספק חדש</h3>
     <input type="hidden" id="sup-modal-id">
     <label>שם ספק</label>
     <input type="text" id="sup-modal-name" placeholder="שם הספק">
-    <label>חוב פתוח (₪)</label>
-    <input type="number" id="sup-modal-debt" placeholder="0" inputmode="numeric">
-    <label>הערה</label>
-    <input type="text" id="sup-modal-note" placeholder="אופציונלי — חשבונית, תאריך...">
     <div class="sup-modal-btns">
       <button class="sup-modal-cancel" onclick="supCloseModal()">ביטול</button>
       <button class="sup-modal-save" onclick="supSave()">שמור</button>
     </div>
-    <button class="sup-modal-del" id="sup-modal-del-btn" onclick="supDelete()">🗑 מחק ספק</button>
+    <button class="sup-modal-del" id="sup-modal-del-btn" onclick="supDelete()" style="display:none">🗑 מחק ספק</button>
+  </div>
+</div>
+
+<!-- מודל הוספת רשומה (חיוב/תשלום) -->
+<div class="sup-modal-overlay" id="sup-entry-overlay" onclick="if(event.target===this)supCloseEntry()">
+  <div class="sup-modal">
+    <h3 id="sup-entry-title">חיוב חדש</h3>
+    <label>תאריך</label>
+    <input type="date" id="sup-entry-date">
+    <label>סכום (₪)</label>
+    <input type="number" id="sup-entry-amt" placeholder="0" inputmode="numeric">
+    <label>הערה (אופציונלי)</label>
+    <input type="text" id="sup-entry-note" placeholder="פורניר, חשבונית 123...">
+    <div class="sup-modal-btns">
+      <button class="sup-modal-cancel" onclick="supCloseEntry()">ביטול</button>
+      <button class="sup-modal-save" id="sup-entry-save-btn" onclick="supSaveEntry()">שמור</button>
+    </div>
   </div>
 </div>
 
@@ -2806,75 +2863,173 @@ async function supLoad() {
   supRender();
 }
 
+function supCalcDebt(s) {
+  const entries = s.entries || [];
+  const charges = entries.filter(e => e.type === 'charge').reduce((t, e) => t + (Number(e.amt)||0), 0);
+  const payments = entries.filter(e => e.type === 'payment').reduce((t, e) => t + (Number(e.amt)||0), 0);
+  return { charges, payments, balance: charges - payments };
+}
+
 function supRender() {
-  const total = supData.reduce((s, x) => s + (Number(x.debt) || 0), 0);
+  const total = supData.reduce((t, s) => t + supCalcDebt(s).balance, 0);
   document.getElementById('sup-total-amount').textContent = total.toLocaleString('he-IL') + ' ₪';
 
   const list = document.getElementById('sup-list');
   list.innerHTML = '';
   supData.forEach(s => {
-    const debt = Number(s.debt) || 0;
-    const debtHtml = debt > 0
-      ? `<span class="sup-debt-pos">${debt.toLocaleString('he-IL')} ₪</span>`
+    const { balance } = supCalcDebt(s);
+    const debtHtml = balance > 0
+      ? `<span class="sup-debt-pos">${balance.toLocaleString('he-IL')} ₪</span>`
       : `<span class="sup-debt-zero">אין חוב</span>`;
-    const noteHtml = s.note ? `<div class="sup-note">${s.note}</div>` : '';
     const row = document.createElement('div');
     row.className = 'sup-row';
     row.innerHTML = `
-      <div style="flex:1">
-        <div class="sup-name">${s.name}</div>
-        ${noteHtml}
-      </div>
+      <div style="flex:1"><div class="sup-name">${s.name}</div></div>
       ${debtHtml}
-      <button class="sup-edit-btn" onclick="supOpenEdit('${s.id}')">✏️</button>
+      <button class="sup-edit-btn" onclick="supOpenLog('${s.id}')">פרטים ›</button>
     `;
     list.appendChild(row);
   });
 }
 
-function supOpenEdit(supplierId) {
-  const s = supData.find(x => x.id === supplierId);
+// ===== לוג ספק =====
+let supCurrentId = null;
+let supEntryType = 'charge';
+
+function supOpenLog(id) {
+  supCurrentId = id;
+  document.getElementById('sup-list-card').style.display = 'none';
+  document.getElementById('sup-log-panel').style.display = 'block';
+  supRenderLog();
+}
+
+function supCloseLog() {
+  supCurrentId = null;
+  document.getElementById('sup-list-card').style.display = 'block';
+  document.getElementById('sup-log-panel').style.display = 'none';
+}
+
+function supRenderLog() {
+  const s = supData.find(x => x.id === supCurrentId);
   if (!s) return;
-  supEditingId = supplierId;
-  document.getElementById('sup-modal-title').textContent = 'עריכת ספק';
-  document.getElementById('sup-modal-id').value = supplierId;
-  document.getElementById('sup-modal-name').value = s.name;
-  document.getElementById('sup-modal-debt').value = s.debt || '';
-  document.getElementById('sup-modal-note').value = s.note || '';
-  document.getElementById('sup-modal-del-btn').style.display = '';
-  document.getElementById('sup-modal-overlay').classList.add('open');
+  document.getElementById('sup-log-title').textContent = s.name;
+  const { charges, payments, balance } = supCalcDebt(s);
+  const balEl = document.getElementById('sup-log-balance');
+  balEl.textContent = balance.toLocaleString('he-IL') + ' ₪';
+  balEl.className = 'sup-log-balance-amount' + (balance === 0 ? ' zero' : '');
+  document.getElementById('sup-log-balance-sub').textContent =
+    `חיובים: ${charges.toLocaleString('he-IL')} ₪ | שולם: ${payments.toLocaleString('he-IL')} ₪`;
+
+  const entries = (s.entries || []).slice().reverse();
+  const container = document.getElementById('sup-log-entries');
+  if (entries.length === 0) {
+    container.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:14px">אין רשומות עדיין</div>';
+    return;
+  }
+  container.innerHTML = entries.map((e, ri) => {
+    const realIdx = (s.entries.length - 1) - ri;
+    const icon = e.type === 'charge' ? '🔴' : '🟢';
+    const sign = e.type === 'charge' ? '+' : '−';
+    const cls = e.type === 'charge' ? 'charge' : 'payment';
+    const desc = e.note ? esc(e.note) : (e.type === 'charge' ? 'חיוב' : 'תשלום');
+    return `<div class="sup-entry-row">
+      <span class="sup-entry-type">${icon}</span>
+      <div class="sup-entry-info">
+        <div class="sup-entry-desc">${desc}</div>
+        <div class="sup-entry-date">${e.date || ''}</div>
+      </div>
+      <span class="sup-entry-amt ${cls}">${sign}${Number(e.amt).toLocaleString('he-IL')} ₪</span>
+      <button class="sup-entry-del" onclick="supDelEntry(${realIdx})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function supOpenAddEntry(type) {
+  supEntryType = type;
+  document.getElementById('sup-entry-title').textContent = type === 'charge' ? 'חיוב חדש' : 'תשלום חדש';
+  document.getElementById('sup-entry-save-btn').style.background = type === 'charge' ? '#c0392b' : '#27ae60';
+  document.getElementById('sup-entry-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('sup-entry-amt').value = '';
+  document.getElementById('sup-entry-note').value = '';
+  document.getElementById('sup-entry-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('sup-entry-amt').focus(), 100);
+}
+
+function supCloseEntry() {
+  document.getElementById('sup-entry-overlay').classList.remove('open');
+}
+
+async function supSaveEntry() {
+  const amt = parseFloat(document.getElementById('sup-entry-amt').value);
+  if (!amt || amt <= 0) { showSnack('סכום לא תקין'); return; }
+  const date = document.getElementById('sup-entry-date').value;
+  const note = document.getElementById('sup-entry-note').value.trim();
+  const s = supData.find(x => x.id === supCurrentId);
+  if (!s) return;
+  if (!s.entries) s.entries = [];
+  s.entries.push({ type: supEntryType, amt, date, note });
+  supCloseEntry();
+  const r = await api({ action: 'saveSupplier', supplierId: s.id, name: s.name, entries: s.entries });
+  if (r.success) {
+    showSnack(supEntryType === 'charge' ? '✓ חיוב נוסף' : '✓ תשלום נוסף');
+    await supLoad();
+    supRenderLog();
+    supRender();
+  } else { showSnack('⚠ שגיאה'); }
+}
+
+async function supDelEntry(idx) {
+  const s = supData.find(x => x.id === supCurrentId);
+  if (!s || !s.entries) return;
+  if (!confirm('למחוק רשומה זו?')) return;
+  s.entries.splice(idx, 1);
+  const r = await api({ action: 'saveSupplier', supplierId: s.id, name: s.name, entries: s.entries });
+  if (r.success) {
+    showSnack('✓ נמחק');
+    await supLoad();
+    supRenderLog();
+    supRender();
+  } else { showSnack('⚠ שגיאה'); }
 }
 
 function supOpenAdd() {
   supEditingId = null;
   document.getElementById('sup-modal-title').textContent = 'ספק חדש';
-  document.getElementById('sup-modal-id').value = '';
   document.getElementById('sup-modal-name').value = '';
-  document.getElementById('sup-modal-debt').value = '';
-  document.getElementById('sup-modal-note').value = '';
   document.getElementById('sup-modal-del-btn').style.display = 'none';
+  document.getElementById('sup-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('sup-modal-name').focus(), 100);
+}
+
+function supOpenEditName() {
+  const s = supData.find(x => x.id === supCurrentId);
+  if (!s) return;
+  supEditingId = supCurrentId;
+  document.getElementById('sup-modal-title').textContent = 'עריכת שם';
+  document.getElementById('sup-modal-name').value = s.name;
+  document.getElementById('sup-modal-del-btn').style.display = 'block';
   document.getElementById('sup-modal-overlay').classList.add('open');
 }
 
 function supCloseModal() {
   document.getElementById('sup-modal-overlay').classList.remove('open');
+  supEditingId = null;
 }
 
 async function supSave() {
   const name = document.getElementById('sup-modal-name').value.trim();
   if (!name) { showSnack('חסר שם ספק'); return; }
-  const debt = Number(document.getElementById('sup-modal-debt').value) || 0;
-  const note = document.getElementById('sup-modal-note').value.trim();
+  const s = supData.find(x => x.id === supEditingId);
   const supplierId = supEditingId || ('sup-' + Date.now());
-
-  const r = await api({action:'saveSupplier', supplierId, name, debt, note});
+  const entries = s ? (s.entries || []) : [];
+  const r = await api({ action: 'saveSupplier', supplierId, name, entries });
   if (r.success) {
     supCloseModal();
     showSnack('✓ נשמר');
     await supLoad();
-  } else {
-    showSnack('⚠ שגיאה בשמירה');
-  }
+    supRender();
+    if (supCurrentId) supRenderLog();
+  } else { showSnack('⚠ שגיאה בשמירה'); }
 }
 
 async function supDelete() {
@@ -2882,15 +3037,16 @@ async function supDelete() {
   const s = supData.find(x => x.id === supEditingId);
   const name = s ? s.name : 'ספק זה';
   if (!confirm(`למחוק את "${name}"?`)) return;
-  const r = await api({action:'deleteSupplier', supplierId: supEditingId});
+  const r = await api({ action: 'deleteSupplier', supplierId: supEditingId });
   if (r.success) {
     supCloseModal();
+    supCloseLog();
     showSnack('✓ נמחק');
     await supLoad();
-  } else {
-    showSnack('⚠ שגיאה במחיקה');
-  }
+    supRender();
+  } else { showSnack('⚠ שגיאה במחיקה'); }
 }
+
 
 // ===== עריכת השלמות בשטח (instFollowup) =====
 function startEditInstFollowup(spaceId, idx) {
