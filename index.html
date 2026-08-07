@@ -644,10 +644,45 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="refresh-btn" id="update-btn" onclick="checkForUpdate()" style="display:none;background:#BA7517;color:#fff">⬆ עדכון זמין</button>
+      <button class="refresh-btn" onclick="openProjMgmt()">⚙️ פרויקטים</button>
       <button class="refresh-btn" onclick="loadData()">רענן ↺</button>
     </div>
   </div>
   <div class="tabs" id="tabs-container"></div>
+</div>
+
+<!-- מודל ניהול פרויקטים -->
+<div class="modal-overlay hidden" id="proj-mgmt-modal">
+  <div class="modal-box" style="max-height:85vh;overflow-y:auto;">
+    <div class="modal-title">ניהול פרויקטים</div>
+
+    <div style="background:#f8f6f0;border-radius:12px;padding:14px;margin-bottom:18px;">
+      <div class="modal-label" style="margin-bottom:10px;font-weight:700;">➕ פרויקט חדש</div>
+      <div class="modal-field">
+        <label class="modal-label">שם הפרויקט</label>
+        <input class="modal-input" id="pm-new-name" type="text" placeholder="למשל: רוטשילד 10">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">שם הלקוח</label>
+        <input class="modal-input" id="pm-new-client" type="text" placeholder="שם הלקוח">
+      </div>
+      <div class="modal-field" style="margin-bottom:0;">
+        <label class="modal-label">תאריך אספקה משוער (לא חובה)</label>
+        <input class="modal-input" id="pm-new-delivery" type="date">
+      </div>
+      <button class="hw-save-btn" style="margin-top:12px;" onclick="pmAddProject()">➕ הוסף פרויקט</button>
+    </div>
+
+    <div class="modal-label" style="font-weight:700;margin-bottom:8px;">פרויקטים פעילים</div>
+    <div id="pm-active-list"></div>
+
+    <div class="modal-label" style="font-weight:700;margin:18px 0 8px;">📦 פרויקטים בארכיון</div>
+    <div id="pm-archived-list"></div>
+
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeProjMgmt()" style="flex:1">סגור</button>
+    </div>
+  </div>
 </div>
 
 <!-- מסך ייצור -->
@@ -894,12 +929,24 @@
     <div class="fin-vat-row" id="fin-base-vat"></div>
 
     <div style="margin-top:14px;">
-      <div class="fin-sec">תוספות</div>
+      <div class="fin-sec">תוספות ושינויים <span style="font-weight:400;color:#999;font-size:12px;">(סכום שלילי = הפחתה/ביטול)</span></div>
       <div id="fin-extras-list"></div>
       <div class="fin-add-row">
-        <input class="fin-input" id="fin-extra-desc" placeholder="תיאור התוספת">
-        <input type="number" class="fin-input" id="fin-extra-amt" placeholder="סכום ₪" style="max-width:100px;text-align:left;">
+        <input class="fin-input" id="fin-extra-desc" placeholder="תיאור (תוספת / פישוט / ביטול רהיט)">
+        <input type="number" class="fin-input" id="fin-extra-amt" placeholder="₪ (שלילי=זיכוי)" style="max-width:120px;text-align:left;">
         <button class="fin-add-btn" onclick="finAddExtra()">+ הוסף</button>
+      </div>
+      <div class="fin-row" style="margin-top:10px;border-top:1.5px dashed #e0e0e0;padding-top:10px;">
+        <span class="fin-row-label" style="font-weight:700;">סה"כ תוספות ושינויים</span>
+        <div style="text-align:left">
+          <div class="fin-row-val" id="fin-extras-total" style="font-weight:700;">0 ₪</div>
+        </div>
+      </div>
+      <div class="fin-row" style="background:#f8f6f0;border-radius:8px;padding:10px 12px;margin-top:6px;">
+        <span class="fin-row-label" style="font-weight:700;">הצעה מקורית + תוספות</span>
+        <div style="text-align:left">
+          <div class="fin-row-val" id="fin-quote-plus-extras" style="font-weight:700;color:#BA7517;">0 ₪</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1166,6 +1213,7 @@ HW_COMPANIES.forEach(co => co.series.forEach(s => {
 }));
 
 let projects = [];
+const activeProjects = () => projects.filter(p => p.status !== 'archived');
 let currentProjectId = null;
 let editContext = null;
 let currentScreen = 'production';
@@ -1203,15 +1251,15 @@ function switchScreen(screen) {
   document.getElementById('bnav-installation').classList.toggle('active', screen==='installation');
   document.getElementById('bnav-suppliers').classList.toggle('active', screen==='suppliers');
   document.getElementById('tabs-container').parentElement.style.display = screen==='production' ? '' : 'none';
-  if (screen==='hardware' && !hwProjectId && projects.length) {
-    hwSelectProject(projects[0].id);
+  if (screen==='hardware' && !hwProjectId && activeProjects().length) {
+    hwSelectProject(activeProjects()[0].id);
   }
-  if (screen==='materials' && !matProjectId && projects.length) {
+  if (screen==='materials' && !matProjectId && activeProjects().length) {
     matBuildProjSeg();
-    matSelectProject(projects[0].id);
+    matSelectProject(activeProjects()[0].id);
   }
-  if (screen==='finance' && !finProjectId && projects.length) {
-    finSelectProject(projects[0].id);
+  if (screen==='finance' && !finProjectId && activeProjects().length) {
+    finSelectProject(activeProjects()[0].id);
   }
   if (screen==='installation') {
     instBuildProjSeg();
@@ -1253,9 +1301,85 @@ async function loadData() {
   }
 }
 
+// ===== ניהול פרויקטים =====
+function openProjMgmt() {
+  pmRender();
+  document.getElementById('proj-mgmt-modal').classList.remove('hidden');
+}
+function closeProjMgmt() {
+  document.getElementById('proj-mgmt-modal').classList.add('hidden');
+}
+function pmRender() {
+  const active = projects.filter(p => p.status !== 'archived');
+  const archived = projects.filter(p => p.status === 'archived');
+
+  const activeEl = document.getElementById('pm-active-list');
+  activeEl.innerHTML = active.length ? active.map(p => `
+    <div class="fin-row" style="align-items:center;">
+      <span class="fin-row-label">${esc(p.name)}<div class="fin-row-sub">${esc(p.client||'')}</div></span>
+      <button class="fin-del-btn" style="width:auto;padding:6px 12px;border-radius:8px;background:#f0f0f0;color:#666;font-size:12px;" onclick="pmArchive('${p.id}','${esc(p.name)}')">📦 העבר לארכיון</button>
+    </div>`).join('') : '<div style="color:#aaa;font-size:13px;padding:8px 0;">אין פרויקטים פעילים</div>';
+
+  const archEl = document.getElementById('pm-archived-list');
+  archEl.innerHTML = archived.length ? archived.map(p => `
+    <div class="fin-row" style="align-items:center;opacity:0.7;">
+      <span class="fin-row-label">${esc(p.name)}<div class="fin-row-sub">${esc(p.client||'')}</div></span>
+      <button class="fin-add-btn" style="width:auto;padding:6px 12px;" onclick="pmUnarchive('${p.id}','${esc(p.name)}')">↩ החזר לפעילים</button>
+    </div>`).join('') : '<div style="color:#aaa;font-size:13px;padding:8px 0;">אין פרויקטים בארכיון</div>';
+}
+
+async function pmAddProject() {
+  const name = document.getElementById('pm-new-name').value.trim();
+  const client = document.getElementById('pm-new-client').value.trim();
+  const delivery = document.getElementById('pm-new-delivery').value || '';
+  if (!name) { showSnack('נא להזין שם פרויקט'); return; }
+  const r = await api({action:'addProject', name, client, delivery});
+  if (r.success && r.id) {
+    projects.push({id:r.id, name, client, delivery, status:'active', spaces:[], alerts:[]});
+    document.getElementById('pm-new-name').value = '';
+    document.getElementById('pm-new-client').value = '';
+    document.getElementById('pm-new-delivery').value = '';
+    renderTabs(); hwBuildProjSeg(); finBuildProjSeg(); matBuildProjSeg(); instBuildProjSeg();
+    pmRender();
+    showSnack('✓ הפרויקט "'+name+'" נוסף');
+  } else {
+    showSnack('שגיאה בהוספת הפרויקט');
+  }
+}
+
+async function pmArchive(id, name) {
+  if (!confirm('להעביר את "'+name+'" לארכיון? הנתונים לא יימחקו, אבל הפרויקט לא יופיע יותר במסכים הפעילים.')) return;
+  const r = await api({action:'updateStatus', projectId:id, status:'archived'});
+  if (r.success) {
+    const p = projects.find(p=>p.id===id); if(p) p.status='archived';
+    if (currentProjectId===id) currentProjectId=null;
+    if (hwProjectId===id) hwProjectId=null;
+    if (finProjectId===id) finProjectId=null;
+    if (matProjectId===id) matProjectId=null;
+    if (instProjectId===id) instProjectId=null;
+    renderTabs(); renderView(); hwBuildProjSeg(); finBuildProjSeg(); matBuildProjSeg(); instBuildProjSeg();
+    pmRender();
+    showSnack('📦 "'+name+'" הועבר לארכיון');
+  } else {
+    showSnack('שגיאה בעדכון הסטטוס');
+  }
+}
+
+async function pmUnarchive(id, name) {
+  const r = await api({action:'updateStatus', projectId:id, status:'active'});
+  if (r.success) {
+    const p = projects.find(p=>p.id===id); if(p) p.status='active';
+    renderTabs(); hwBuildProjSeg(); finBuildProjSeg(); matBuildProjSeg(); instBuildProjSeg();
+    pmRender();
+    showSnack('↩ "'+name+'" הוחזר לפעילים');
+  } else {
+    showSnack('שגיאה בעדכון הסטטוס');
+  }
+}
+
 function renderTabs() {
   const container = document.getElementById('tabs-container');
-  const tabs = [{id:null,name:'הכל',alerts:[]}].concat(projects);
+  const tabs = [{id:null,name:'הכל',alerts:[]}].concat(activeProjects());
   container.innerHTML = tabs.map(p => {
     const isActive = currentProjectId === (p.id||null);
     const hasAlert = p.alerts && p.alerts.length > 0;
@@ -1315,7 +1439,7 @@ function hasActiveNotes(rawNotes) {
 function renderDashboard() {
   document.getElementById('main-content').innerHTML =
     '<div class="dashboard-grid">'+
-    projects.map(p=>{
+    activeProjects().map(p=>{
       const pct=projPct(p),st=stInfo(p.status);
       const alerts=p.alerts.map(a=>`<div class="alert-chip"><span>⚠ ${esc(a)}</span></div>`).join('');
       const notesCount = p.spaces.filter(s => hasActiveNotes(s.notes)).length;
@@ -1799,10 +1923,11 @@ function esc(str){if(!str)return'';return String(str).replace(/&/g,'&amp;').repl
 // ===== פרזול =====
 function hwBuildProjSeg() {
   const seg=document.getElementById('hw-proj-seg');
-  seg.innerHTML=projects.map((p,i)=>
+  const ap = activeProjects();
+  seg.innerHTML=ap.map((p,i)=>
     `<button class="seg-btn ${i===0?'active':''}" onclick="hwSelectProject('${p.id}',this)">${p.name}</button>`
   ).join('');
-  if(projects.length)hwSelectProject(projects[0].id);
+  if(ap.length)hwSelectProject(ap[0].id);
 }
 
 async function hwSelectProject(id, el) {
@@ -2369,7 +2494,7 @@ function matBuildProjSeg() {
   matLoadCatalog();
   const seg = document.getElementById('mat-proj-seg');
   if (!seg) return;
-  seg.innerHTML = projects.map((p,i) =>
+  seg.innerHTML = activeProjects().map((p,i) =>
     `<button class="seg-btn ${i===0?'active':''}" onclick="matSaveFurnIfDirty();matSelectProject('${p.id}',this)">${p.name}</button>`
   ).join('');
 }
@@ -2686,10 +2811,11 @@ let finData = {};
 function finBuildProjSeg() {
   const seg = document.getElementById('fin-proj-seg');
   if(!seg) return;
-  seg.innerHTML = projects.map((p,i) =>
+  const ap = activeProjects();
+  seg.innerHTML = ap.map((p,i) =>
     `<button class="fin-proj-btn ${i===0?'active':''}" onclick="finSelectProject('${p.id}',this)">${p.name}</button>`
   ).join('');
-  if(projects.length) finSelectProject(projects[0].id);
+  if(ap.length) finSelectProject(ap[0].id);
 }
 
 async function finSelectProject(id, el) {
@@ -2716,18 +2842,23 @@ function finRender() {
   document.getElementById('fin-base-vat').textContent = d.base ? `כולל מע"מ: ${fmt(vat(d.base))}` : '';
 
   const extEl = document.getElementById('fin-extras-list');
-  extEl.innerHTML = (d.extras||[]).map((e,i) => `
+  extEl.innerHTML = (d.extras||[]).map((e,i) => {
+    const amt = parseFloat(e.amt||0);
+    const isCredit = amt < 0;
+    const color = isCredit ? '#c62828' : '#2e7d32';
+    return `
     <div class="fin-row">
-      <span class="fin-row-label">${esc(e.desc)}</span>
+      <span class="fin-row-label">${isCredit?'↓ ':''}${esc(e.desc)}</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="text-align:left">
-          <div class="fin-row-val">${fmt(e.amt)}</div>
-          <div class="fin-row-sub">כולל מע"מ: ${fmt(vat(e.amt))}</div>
+          <div class="fin-row-val" style="color:${color}">${fmt(amt)}</div>
+          <div class="fin-row-sub">כולל מע"מ: ${fmt(vat(amt))}</div>
         </div>
         <button class="fin-edit-btn" onclick="startEditFinExtra(${i})">✏️</button>
         <button class="fin-del-btn" onclick="finDelExtra(${i})">×</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const payEl = document.getElementById('fin-payments-list');
   payEl.innerHTML = (d.payments||[]).map((p,i) => `
@@ -2763,6 +2894,11 @@ function finCalc() {
   const balEl = document.getElementById('fin-balance');
   const balVat = document.getElementById('fin-balance-vat');
   const baseVat = document.getElementById('fin-base-vat');
+
+  const extTotEl = document.getElementById('fin-extras-total');
+  const quotePlusEl = document.getElementById('fin-quote-plus-extras');
+  if(extTotEl) { extTotEl.textContent = fmt(extrasTotal); extTotEl.style.color = extrasTotal<0?'#c62828':(extrasTotal>0?'#2e7d32':'#1a1a1a'); }
+  if(quotePlusEl) quotePlusEl.textContent = fmt(total);
 
   if(totalPre) totalPre.textContent = fmt(total);
   if(totalVat) totalVat.textContent = `כולל מע"מ: ${fmt(totalWithVat)}`;
@@ -2900,10 +3036,11 @@ function instGetData(projectId) {
 function instBuildProjSeg() {
   const seg = document.getElementById('inst-proj-seg');
   if (!seg) return;
-  seg.innerHTML = projects.map((p,i) =>
+  const ap = activeProjects();
+  seg.innerHTML = ap.map((p,i) =>
     `<button class="inst-proj-btn ${instProjectId===p.id?'active':''}" onclick="instSelectProject('${p.id}',this)">${p.name}</button>`
   ).join('');
-  if (!instProjectId && projects.length) instSelectProject(projects[0].id);
+  if (!instProjectId && ap.length) instSelectProject(ap[0].id);
   else if (instProjectId) instRender();
 }
 
