@@ -1013,8 +1013,11 @@
 
   <!-- כרטיס רגליים וצירים -->
   <div class="inst-card" id="inst-hinges-card">
-    <div class="inst-sec">רגליים וצירים לפי רהיט</div>
-    <div id="inst-hinges-list"></div>
+    <div class="inst-sec" id="inst-hinges-toggle" onclick="instToggleHinges()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+      <span>רגליים וצירים לפי רהיט</span>
+      <span id="inst-hinges-arrow" style="font-size:13px;color:#999;transition:transform .2s;">▶</span>
+    </div>
+    <div id="inst-hinges-list" style="display:none;"></div>
   </div>
 
   <div class="inst-card" id="inst-followup-card">
@@ -2958,7 +2961,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=18');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=19');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
@@ -3496,10 +3499,22 @@ const HINGE_TYPES = [
   {key:'thick',    label:'דופן עבה'},
 ];
 const LEG_HEIGHTS = ['10','12'];
+let instHingesOpen = false;
+
+function instToggleHinges() {
+  instHingesOpen = !instHingesOpen;
+  const list = document.getElementById('inst-hinges-list');
+  const arrow = document.getElementById('inst-hinges-arrow');
+  if (list) list.style.display = instHingesOpen ? 'block' : 'none';
+  if (arrow) arrow.style.transform = instHingesOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+}
 
 function instRenderHinges() {
   const container = document.getElementById('inst-hinges-list');
   if (!container || !instProjectId) return;
+  const arrow = document.getElementById('inst-hinges-arrow');
+  container.style.display = instHingesOpen ? 'block' : 'none';
+  if (arrow) arrow.style.transform = instHingesOpen ? 'rotate(90deg)' : 'rotate(0deg)';
   const proj = projects.find(p => p.id === instProjectId);
   if (!proj) return;
   const d = instGetData(instProjectId);
