@@ -982,6 +982,7 @@
       <div class="fin-summary-vat" id="fin-balance-vat">כולל מע"מ: 0 ₪</div>
     </div>
     <button class="hw-save-btn" onclick="finSave()" style="margin-top:8px;">💾 שמור נתונים</button>
+    <button class="hw-copy-btn" onclick="finExportClient()" style="margin-top:8px;">📋 ייצוא סיכום ללקוח (וואטסאפ)</button>
   </div>
 </div>
 
@@ -2914,6 +2915,56 @@ function finCalc() {
   if(baseVat && base) baseVat.textContent = `כולל מע"מ: ${fmt(vat(base))}`;
 }
 
+function finExportClient() {
+  const proj = projects.find(p => p.id === finProjectId);
+  const projName = proj ? proj.name : '';
+  const d = finData[finProjectId] || {base:0,extras:[],payments:[]};
+  const base = parseFloat(document.getElementById('fin-base')?.value)||0;
+  const extras = d.extras || [];
+  const payments = d.payments || [];
+  const extrasTotal = extras.reduce((s,e)=>s+parseFloat(e.amt||0),0);
+  const total = base + extrasTotal;
+  const totalWithVat = Math.round(total*(1+VAT));
+  const paidTotal = payments.reduce((s,p)=>s+parseFloat(p.amt||0),0);
+  const balance = totalWithVat - paidTotal;
+  const fmt = v => Number(Math.round(v)).toLocaleString('he-IL') + ' ₪';
+
+  const lines = [`*סיכום כספי — ${projName}*`, ''];
+  lines.push(`מחיר הצעה מקורית: ${fmt(base)}`);
+
+  if (extras.length) {
+    lines.push('');
+    lines.push('*תוספות ושינויים:*');
+    extras.forEach(e => {
+      const amt = parseFloat(e.amt||0);
+      const sign = amt >= 0 ? '+' : '';
+      lines.push(`• ${e.desc}: ${sign}${fmt(amt)}`);
+    });
+    lines.push('');
+    lines.push(`סה"כ תוספות ושינויים: ${fmt(extrasTotal)}`);
+  }
+
+  lines.push('');
+  lines.push(`*סה"כ לתשלום (כולל מע"מ): ${fmt(totalWithVat)}*`);
+
+  if (payments.length) {
+    lines.push('');
+    lines.push('*תשלומים שהתקבלו:*');
+    payments.forEach(p => {
+      const dateStr = p.date ? ` (${p.date})` : '';
+      lines.push(`• ${p.desc}${dateStr}: ${fmt(p.amt)}`);
+    });
+    lines.push('');
+    lines.push(`סה"כ שולם: ${fmt(paidTotal)}`);
+  }
+
+  lines.push('');
+  lines.push(`*יתרה לתשלום: ${fmt(balance)}*`);
+
+  const text = lines.join('\n').trim();
+  navigator.clipboard.writeText(text).then(()=>showSnack('✓ הועתק ללוח — אפשר להדביק בוואטסאפ')).catch(()=>showSnack('⚠ לא הועתק'));
+}
+
 function finAddExtra() {
   const desc = document.getElementById('fin-extra-desc').value.trim();
   const amt = parseFloat(document.getElementById('fin-extra-amt').value)||0;
@@ -2961,7 +3012,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=19');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=20');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
