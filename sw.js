@@ -1,9 +1,9 @@
 // Service Worker — נגרות אייל
 // גרסה: כל שינוי כאן יגרום לעדכון אוטומטי
-const CACHE_VERSION = 'nagaria-v4';
+const CACHE_VERSION = 'nagaria-v5';
 
 // index.html לא נשמר בקאש — תמיד נטען טרי מהרשת
-const CACHE_FILES = ['/nagaria/manifest.json'];
+const CACHE_FILES = ['/nagaria/manifest.json', '/nagaria/icons/icon-192.png', '/nagaria/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
