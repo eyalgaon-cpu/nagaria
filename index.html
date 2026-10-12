@@ -463,6 +463,25 @@
   .inst-count-badge.done { background: #e8f5e9; color: #2e7d32; }
   .inst-count-badge.open { background: #fff3cd; color: #856404; }
   .inst-divider { border: none; border-top: 1px solid #f0f0f0; margin: 12px 0; }
+  /* חלוניות מכווצות במסך התקנות */
+  .inst-fold-head { display:flex; align-items:center; gap:8px; cursor:pointer; padding:4px 0; -webkit-tap-highlight-color:transparent; }
+  .inst-fold-title { font-size:15px; font-weight:700; color:#1a1a1a; flex:1; }
+  .inst-fold-arrow { font-size:12px; color:#999; transition:transform .2s; }
+  .inst-fold-arrow.open { transform:rotate(-90deg); }
+  .inst-fold-body { margin-top:8px; }
+  .inst-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; border:2px solid #ddd; box-sizing:border-box; }
+  .inst-dot.open { background:#F28C28; border-color:#F28C28; }
+  .inst-dot.done { background:#4caf50; border-color:#4caf50; }
+  .inst-panel { border:1px solid #eee; border-radius:12px; padding:10px 12px; margin-bottom:8px; background:#fff; }
+  .inst-panel.has-open { border-color:#f7c08a; background:#fffaf4; }
+  .inst-panel .inst-fold-title { font-size:14px; }
+  .inst-panel-sub { font-size:11px; font-weight:700; color:#aaa; margin:12px 0 4px; }
+  .inst-panel-empty { color:#bbb; font-size:13px; padding:4px 8px; }
+  .inst-filter-row { display:flex; gap:6px; margin-bottom:10px; }
+  .inst-filter-btn { padding:6px 12px; border-radius:16px; border:1.5px solid #e0e0e0; background:transparent; font-size:13px; color:#888; cursor:pointer; font-family:inherit; }
+  .inst-filter-btn.active { border-color:#BA7517; color:#BA7517; background:#fff8e1; font-weight:700; }
+  .add-space-btn { width:100%; padding:14px; margin:6px 0 20px; border:2px dashed #d8c39a; border-radius:14px; background:#fffdf7; color:#8a5a12; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .add-space-btn:active { background:#fff3d6; }
   /* ===== מסך חומרים ===== */
   .mat-screen { display: none; }
   .mat-screen.active { display: block; }
@@ -744,7 +763,7 @@
 <!-- Edit modal -->
 <div class="modal-overlay hidden" id="edit-modal">
   <div class="modal-box">
-    <div class="modal-title">עריכת רהיט</div>
+    <div class="modal-title" id="edit-modal-title">עריכת רהיט</div>
     <div class="modal-field">
       <label class="modal-label">מספר פריט (נ-1, נ-3 וכו')</label>
       <input class="modal-input" id="edit-num" type="text" placeholder="נ-1">
@@ -782,7 +801,7 @@
       <input type="checkbox" id="edit-urgent" style="width:22px;height:22px;accent-color:#e53935;cursor:pointer;">
       <label class="modal-label" for="edit-urgent" style="margin:0;cursor:pointer;color:#c62828;font-weight:600">⚡ דחוף</label>
     </div>
-    <div class="modal-field">
+    <div class="modal-field" id="edit-drawings-field">
       <button class="drawings-manage-btn" style="width:100%;padding:10px;font-size:14px;background:#eef3f7;color:#2c5f8a;font-weight:600" onclick="openDrawingsModal()">📐 ניהול שרטוטים</button>
     </div>
     <div class="modal-btns">
@@ -994,51 +1013,31 @@
   </div>
 
   <div class="inst-card" id="inst-fixed-card">
-    <div class="inst-sec">ציוד ליציאה</div>
-    <div class="inst-section-title">
-      כלים קבועים
+    <div class="inst-fold-head" onclick="instToggleEquip()">
+      <span style="font-size:18px">🧰</span>
+      <span class="inst-fold-title">ציוד ליציאה</span>
       <span class="inst-count-badge done" id="inst-fixed-count"></span>
-    </div>
-    <div class="inst-checklist" id="inst-fixed-list"></div>
-    <hr class="inst-divider">
-    <div class="inst-section-title">
-      מיוחד להתקנה זו
       <span class="inst-count-badge open" id="inst-special-count"></span>
+      <span class="inst-fold-arrow" id="inst-equip-arrow">◀</span>
     </div>
-    <div class="inst-checklist" id="inst-special-list"></div>
-    <div class="inst-add-row">
-      <input class="inst-add-input" id="inst-special-input" type="text" placeholder="הוסף פריט מיוחד...">
-      <button class="inst-add-btn" onclick="instAddSpecial()">+ הוסף</button>
+    <div class="inst-fold-body" id="inst-equip-body" style="display:none">
+      <div class="inst-section-title">כלים קבועים</div>
+      <div class="inst-checklist" id="inst-fixed-list"></div>
+      <hr class="inst-divider">
+      <div class="inst-section-title">מיוחד להתקנה זו</div>
+      <div class="inst-checklist" id="inst-special-list"></div>
+      <div class="inst-add-row">
+        <input class="inst-add-input" id="inst-special-input" type="text" placeholder="הוסף פריט מיוחד..."
+          onkeydown="if(event.key==='Enter')instAddSpecial()">
+        <button class="inst-add-btn" onclick="instAddSpecial()">+ הוסף</button>
+      </div>
     </div>
-  </div>
-
-  <!-- כרטיס רגליים וצירים -->
-  <div class="inst-card" id="inst-hinges-card">
-    <div class="inst-sec" id="inst-hinges-toggle" onclick="instToggleHinges()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-      <span>רגליים וצירים לפי רהיט</span>
-      <span id="inst-hinges-arrow" style="font-size:13px;color:#999;transition:transform .2s;">▶</span>
-    </div>
-    <div id="inst-hinges-list" style="display:none;"></div>
   </div>
 
   <div class="inst-card" id="inst-followup-card">
-    <div class="inst-sec">השלמות בשטח</div>
-
-    <!-- בחירת רהיט -->
-    <div style="margin-bottom:10px">
-      <select class="inst-add-input" id="inst-followup-space-sel" style="width:100%">
-        <option value="">-- בחר רהיט --</option>
-      </select>
-    </div>
-
-    <!-- הוספת השלמה לרהיט -->
-    <div class="inst-add-row" style="margin-bottom:14px">
-      <input class="inst-add-input" id="inst-followup-input" type="text" placeholder="מה חסר / לטיפול...">
-      <button class="inst-add-btn" onclick="instAddFollowup()">+ הוסף</button>
-    </div>
-
-    <!-- סיכום כל ההשלמות לפי רהיט -->
-    <div id="inst-followup-summary"></div>
+    <div class="inst-sec">רהיטים — השלמות, רגליים וצירים</div>
+    <div class="inst-filter-row" id="inst-filter-row"></div>
+    <div id="inst-furniture-list"></div>
   </div>
 
   <!-- כרטיס ייצוא לוואטסאפ -->
@@ -1604,7 +1603,8 @@ function renderProject(proj) {
       </div>
     </div>
     <div class="steps-legend"><span class="legend-label">לחץ שלב כדי לסמן ✓</span>${legend}</div>
-    ${furnitureCards}`;
+    ${furnitureCards}
+    <button class="add-space-btn" onclick="openAddSpaceModal('${proj.id}')">＋ הוסף רהיט לפרויקט</button>`;
 }
 
 function toggleDoneNotes(spaceId) {
@@ -1716,6 +1716,8 @@ function openEditModal(projectId,spaceId) {
   const space=proj?.spaces.find(s=>s.id===spaceId);
   if(!space)return;
   editContext={projectId,spaceId};
+  document.getElementById('edit-modal-title').textContent='עריכת רהיט';
+  document.getElementById('edit-drawings-field').style.display='';
   document.getElementById('edit-num').value=space.itemNum||'';
   document.getElementById('edit-name').value=space.name||'';
   document.getElementById('edit-finish').value=space.finish||'';
@@ -1728,8 +1730,52 @@ function openEditModal(projectId,spaceId) {
 }
 function closeEditModal(){document.getElementById('edit-modal').classList.add('hidden');editContext=null;}
 
+// ===== הוספת רהיט חדש לפרויקט =====
+function openAddSpaceModal(projectId) {
+  const proj=projects.find(p=>p.id===projectId);
+  if(!proj)return;
+  editContext={projectId,spaceId:null,isNew:true};
+  document.getElementById('edit-modal-title').textContent='רהיט חדש — '+proj.name;
+  document.getElementById('edit-drawings-field').style.display='none'; // שרטוטים מוסיפים אחרי השמירה
+  ['edit-num','edit-name','edit-finish','edit-finish-inner','edit-finish-drawer','edit-phase-note']
+    .forEach(id=>document.getElementById(id).value='');
+  document.getElementById('edit-phase').value='';
+  document.getElementById('edit-urgent').checked=false;
+  document.getElementById('edit-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('edit-num').focus(),50);
+}
+
+async function saveNewSpace() {
+  const {projectId}=editContext;
+  const proj=projects.find(p=>p.id===projectId);
+  if(!proj)return;
+  const f={
+    itemNum:document.getElementById('edit-num').value.trim(),
+    name:document.getElementById('edit-name').value.trim(),
+    finish:document.getElementById('edit-finish').value.trim(),
+    finishInner:document.getElementById('edit-finish-inner').value.trim(),
+    finishDrawer:document.getElementById('edit-finish-drawer').value.trim(),
+    phase:document.getElementById('edit-phase').value,
+    phaseNote:document.getElementById('edit-phase-note').value.trim(),
+    urgent:document.getElementById('edit-urgent').checked
+  };
+  if(!f.name){showSnack('נא להזין שם רהיט');return;}
+  closeEditModal();
+  showSnack('שומר רהיט...');
+  const r=await api(Object.assign({action:'addSpace',projectId},f));
+  if(r.success&&r.id){
+    proj.spaces.push(Object.assign({id:r.id,notes:'',steps:{},sd:'',drawings:''},f));
+    renderProject(proj);
+    if(typeof instRender==='function'&&instProjectId===projectId)instRender();
+    showSnack('✓ הרהיט "'+f.name+'" נוסף');
+  }else{
+    showSnack('⚠ שגיאה בהוספת רהיט'+(r.error?': '+r.error:''));
+  }
+}
+
 async function saveEdit() {
   if(!editContext)return;
+  if(editContext.isNew)return saveNewSpace();
   const {projectId,spaceId}=editContext;
   const proj=projects.find(p=>p.id===projectId);
   const space=proj?.spaces.find(s=>s.id===spaceId);
@@ -3012,7 +3058,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=21');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=22');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
@@ -3106,6 +3152,30 @@ function instSelectProject(id) {
   instRender();
 }
 
+let instEquipOpen = false;              // תפריט הציוד סגור כברירת מחדל
+const instOpenPanels = new Set();      // רהיטים פתוחים: "projectId:spaceId"
+let instOnlyOpen = false;              // סינון: רק רהיטים עם השלמות פתוחות
+
+function instToggleEquip() {
+  instEquipOpen = !instEquipOpen;
+  instApplyEquipState();
+}
+function instApplyEquipState() {
+  const body = document.getElementById('inst-equip-body');
+  const arrow = document.getElementById('inst-equip-arrow');
+  if (body) body.style.display = instEquipOpen ? 'block' : 'none';
+  if (arrow) arrow.classList.toggle('open', instEquipOpen);
+}
+function instTogglePanel(spaceId) {
+  const key = instProjectId + ':' + spaceId;
+  if (instOpenPanels.has(key)) instOpenPanels.delete(key); else instOpenPanels.add(key);
+  instRenderFurniture();
+}
+function instSetOnlyOpen(v) {
+  instOnlyOpen = v;
+  instRenderFurniture();
+}
+
 function instRender() {
   if (!instProjectId) return;
   const d = instGetData(instProjectId);
@@ -3115,67 +3185,145 @@ function instRender() {
   // קבועים
   const fixedList = document.getElementById('inst-fixed-list');
   const doneFixed = INST_FIXED_ITEMS.filter(k => d.fixed[k]).length;
-  document.getElementById('inst-fixed-count').textContent = doneFixed + '/' + INST_FIXED_ITEMS.length;
+  document.getElementById('inst-fixed-count').textContent = 'כלים ' + doneFixed + '/' + INST_FIXED_ITEMS.length;
   fixedList.innerHTML = INST_FIXED_ITEMS.map(item => {
     const checked = !!d.fixed[item];
     return `<label class="inst-item ${checked?'checked':''}">
-      <input type="checkbox" ${checked?'checked':''} onchange="instToggleFixed('${item}',this.checked)">
+      <input type="checkbox" ${checked?'checked':''} onchange="instToggleFixed('${item.replace(/'/g,"\\'")}',this.checked)">
       <span class="inst-item-label">${esc(item)}</span>
     </label>`;
   }).join('');
 
   // מיוחדים
   const specialList = document.getElementById('inst-special-list');
-  const doneSpecial = d.special.filter(x=>x.done).length;
-  document.getElementById('inst-special-count').textContent = doneSpecial + '/' + d.special.length;
-  specialList.innerHTML = d.special.map((item,i) =>
+  const openSpecial = d.special.filter(x=>!x.done).length;
+  const spBadge = document.getElementById('inst-special-count');
+  spBadge.textContent = openSpecial ? 'מיוחד: ' + openSpecial + ' חסר' : '';
+  spBadge.style.display = openSpecial ? '' : 'none';
+  specialList.innerHTML = d.special.length ? d.special.map((item,i) =>
     `<div class="inst-item ${item.done?'checked':''}">
       <input type="checkbox" ${item.done?'checked':''} onchange="instToggleSpecial(${i},this.checked)">
       <span class="inst-item-label" id="isp-${i}">${esc(item.text)}</span>
       <button class="inst-item-edit" onclick="startEditInstSpecial(${i})">✏️</button>
       <button class="inst-item-del" onclick="instDelSpecial(${i})">×</button>
     </div>`
-  ).join('');
+  ).join('') : '<div class="inst-panel-empty">אין פריטים מיוחדים</div>';
 
-  // השלמות — populate select
-  const sel = document.getElementById('inst-followup-space-sel');
-  if (sel) {
-    const currentVal = sel.value;
-    sel.innerHTML = '<option value="">-- בחר רהיט --</option>' +
-      proj.spaces.map(s => `<option value="${s.id}">${esc(s.itemNum ? s.itemNum+' — '+s.name : s.name)}</option>`).join('');
-    if (currentVal) sel.value = currentVal;
-  }
-
-  // סיכום השלמות לפי רהיט
-  const summary = document.getElementById('inst-followup-summary');
-  if (summary) {
-    const followup = d.followup || {};
-    const spaceIds = Object.keys(followup).filter(sid => followup[sid] && followup[sid].length > 0);
-    if (spaceIds.length === 0) {
-      summary.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:8px">אין השלמות עדיין</div>';
-    } else {
-      summary.innerHTML = spaceIds.map(sid => {
-        const space = proj.spaces.find(s => s.id === sid);
-        const label = space ? (space.itemNum ? space.itemNum+' — '+space.name : space.name) : sid;
-        const items = followup[sid];
-        const itemsHTML = items.map((item, i) =>
-          `<div class="inst-item ${item.done?'checked':''}">
-            <input type="checkbox" ${item.done?'checked':''} onchange="instToggleFollowup('${sid}',${i},this.checked)">
-            <span class="inst-item-label" id="ifl-${sid}-${i}">${esc(item.text)}</span>
-            <button class="inst-item-edit" onclick="startEditInstFollowup('${sid}',${i})">✏️</button>
-            <button class="inst-item-del" onclick="instDelFollowup('${sid}',${i})">×</button>
-          </div>`
-        ).join('');
-        const open = items.filter(x=>!x.done).length;
-        return `<div style="margin-bottom:12px">
-          <div class="inst-section-title">${esc(label)}<span class="inst-count-badge ${open>0?'open':'done'}">${open} פתוח</span></div>
-          <div class="inst-checklist">${itemsHTML}</div>
-        </div>`;
-      }).join('<hr class="inst-divider">');
-    }
-  }
+  instApplyEquipState();
+  instRenderFurniture();
   instRenderExportScope();
-  instRenderHinges();
+}
+
+function instRenderFurniture() {
+  const list = document.getElementById('inst-furniture-list');
+  if (!list || !instProjectId) return;
+  const proj = projects.find(p => p.id === instProjectId);
+  if (!proj) return;
+  const d = instGetData(instProjectId);
+  const followup = d.followup || {};
+  const hinges = d.hinges || {};
+
+  const openCount = sid => (followup[sid] || []).filter(x => !x.done).length;
+  const withOpen = proj.spaces.filter(s => openCount(s.id) > 0).length;
+
+  const filterRow = document.getElementById('inst-filter-row');
+  if (filterRow) filterRow.innerHTML =
+    `<button class="inst-filter-btn ${!instOnlyOpen?'active':''}" onclick="instSetOnlyOpen(false)">הכל (${proj.spaces.length})</button>
+     <button class="inst-filter-btn ${instOnlyOpen?'active':''}" onclick="instSetOnlyOpen(true)">🟠 להשלמה (${withOpen})</button>`;
+
+  const spaces = instOnlyOpen ? proj.spaces.filter(s => openCount(s.id) > 0) : proj.spaces;
+  if (!spaces.length) {
+    list.innerHTML = `<div class="inst-panel-empty" style="text-align:center;padding:10px">${instOnlyOpen ? 'אין רהיטים עם השלמות פתוחות 👌' : 'אין רהיטים בפרויקט'}</div>`;
+    return;
+  }
+
+  list.innerHTML = spaces.map(s => {
+    const sid = s.id;
+    const items = followup[sid] || [];
+    const open = openCount(sid);
+    const dotCls = open > 0 ? 'open' : (items.length ? 'done' : '');
+    const isOpen = instOpenPanels.has(instProjectId + ':' + sid);
+    const label = s.itemNum ? s.itemNum + ' — ' + s.name : s.name;
+    const h = hinges[sid] || {};
+    const hwCount = (h.legs || 0) + HINGE_TYPES.reduce((a,t) => a + (h[t.key] || 0), 0);
+
+    let body = '';
+    if (isOpen) {
+      const itemRow = i => {
+        const item = items[i];
+        return `<div class="inst-item ${item.done?'checked':''}">
+          <input type="checkbox" ${item.done?'checked':''} onchange="instToggleFollowup('${sid}',${i},this.checked)">
+          <span class="inst-item-label" id="ifl-${sid}-${i}">${esc(item.text)}</span>
+          <button class="inst-item-edit" onclick="startEditInstFollowup('${sid}',${i})">✏️</button>
+          <button class="inst-item-del" onclick="instDelFollowup('${sid}',${i})">×</button>
+        </div>`;
+      };
+      const idx = items.map((_, i) => i);
+      const openIdx = idx.filter(i => !items[i].done);
+      const doneIdx = idx.filter(i => items[i].done);
+      const itemsHTML = items.length
+        ? openIdx.map(itemRow).join('') + doneIdx.map(itemRow).join('')
+        : '<div class="inst-panel-empty">אין השלמות לרהיט הזה</div>';
+
+      const hingeFields = HINGE_TYPES.map(t => `
+        <div class="inst-hinge-field">
+          <label>${t.label}</label>
+          <input type="number" min="0" placeholder="0" value="${h[t.key] || ''}"
+            onchange="instUpdateHinge('${sid}','${t.key}',this.value)">
+        </div>`).join('');
+      const legHeightSel = LEG_HEIGHTS.map(lh =>
+        `<option value="${lh}" ${(h.legH||'10')===lh?'selected':''}>${lh} ס"מ</option>`).join('');
+
+      body = `<div class="inst-fold-body">
+        <div class="inst-panel-sub">השלמות בשטח</div>
+        <div class="inst-checklist">${itemsHTML}</div>
+        <div class="inst-add-row">
+          <input class="inst-add-input" id="ifu-input-${sid}" type="text" placeholder="מה חסר / לטיפול..."
+            onkeydown="if(event.key==='Enter')instAddFollowupFor('${sid}')">
+          <button class="inst-add-btn" onclick="instAddFollowupFor('${sid}')">+ הוסף</button>
+        </div>
+        <div class="inst-panel-sub">רגליים וצירים</div>
+        <div class="inst-hinge-fields">
+          <div class="inst-hinge-field" style="min-width:110px">
+            <label>רגליים (כמות)</label>
+            <input type="number" min="0" placeholder="0" value="${h.legs || ''}"
+              onchange="instUpdateHinge('${sid}','legs',this.value)">
+          </div>
+          <div class="inst-hinge-field" style="min-width:90px">
+            <label>גובה רגל</label>
+            <select onchange="instUpdateHinge('${sid}','legH',this.value)">${legHeightSel}</select>
+          </div>
+          ${hingeFields}
+        </div>
+      </div>`;
+    }
+
+    return `<div class="inst-panel ${open>0?'has-open':''}">
+      <div class="inst-fold-head" onclick="instTogglePanel('${sid}')">
+        <span class="inst-dot ${dotCls}"></span>
+        <span class="inst-fold-title">${esc(label)}</span>
+        ${open>0 ? `<span class="inst-count-badge open">${open} פתוח</span>` : ''}
+        ${hwCount>0 ? '<span title="הוזנו רגליים/צירים" style="font-size:13px">🔩</span>' : ''}
+        <span class="inst-fold-arrow ${isOpen?'open':''}">◀</span>
+      </div>
+      ${body}
+    </div>`;
+  }).join('');
+}
+
+function instAddFollowupFor(spaceId) {
+  const inp = document.getElementById('ifu-input-' + spaceId);
+  const text = inp ? inp.value.trim() : '';
+  if (!text) { showSnack('הכנס טקסט להשלמה'); return; }
+  const d = instGetData(instProjectId);
+  if (!d.followup) d.followup = {};
+  if (!d.followup[spaceId]) d.followup[spaceId] = [];
+  d.followup[spaceId].push({text, done: false});
+  instOpenPanels.add(instProjectId + ':' + spaceId);
+  instSave();
+  instRender();
+  const again = document.getElementById('ifu-input-' + spaceId);
+  if (again) again.focus();
 }
 
 function instToggleFixed(item, checked) {
