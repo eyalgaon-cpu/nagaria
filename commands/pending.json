@@ -1,1 +1,1 @@
-{"status":"done"}
+{"action": "saveFinance", "projectId": "hatikvah", "key": "nagaria-ayal-2026", "finData": {"base": 235100, "extras": [{"desc": "נ-18 ארון הורים: שדרוג חזיתות לקרוליינה טבעי (אושר 12.4.26)", "amt": 4500}, {"desc": "נ-18 ארון הורים: מסתור וילון בנגרות (ללא חיוב)", "amt": 0}], "payments": [{"desc": "מקדמה", "amt": 41615, "date": "2026-03-18"}, {"desc": "תשלום", "amt": 97000, "date": "2026-08-04"}]}}
