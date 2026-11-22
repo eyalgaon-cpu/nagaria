@@ -1169,7 +1169,7 @@ HW_COMPANIES = [
     id: 'domicil', label: 'דומיסיל',
     series: [
       { id: 'domicil-mobila', label: 'מובילה',  backs: [68,151,183], depths: [550,500,450,400,350], freeDepth: false, panel: false },
-      { id: 'domicil-vision', label: "ויז'ן",   backs: [84,116,167,199], depths: [550,500,450,400,350], freeDepth: false, panel: ['פח','זכוכית'] }
+      { id: 'domicil-vision', label: "ויז'ן סופרים", backs: ['S=63','M=101','H=148'], depths: [550,500,450,400,350,250], freeDepth: false, panel: ['פח','זכוכית'], glassMinDepth: 350, heavyMinDepth: 450 }
     ]
   },
   {
@@ -2107,7 +2107,7 @@ function hwBuildGroupForm(g, gi) {
   const backs = (isWoodOnly || series.freeDepth) ? [] : series.backs;
   const showGal = g.series === 'domicil-mobila';
   const depths = series.depths || [550,500,450,400,350];
-  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal, depths, isWoodOnly)).join('');
+  const rowsHTML = (g.rows||[]).map((r,ri) => hwGroupRowHTML(gi, ri, r, backs, showGal, hwAllowedDepths(series, g), isWoodOnly)).join('');
   const galHeader = showGal ? `<th style="text-align:center">גלריה+</th>` : '';
 
   // dnote
@@ -2135,11 +2135,30 @@ function hwBuildGroupForm(g, gi) {
     ${dnoteRow}`;
 }
 
+// עומקים מותרים לפי דופן (ויז'ן סופרים: בזכוכית אין 250)
+function hwAllowedDepths(series, g) {
+  const depths = (series && series.depths) || [550,500,450,400,350];
+  if (series && series.glassMinDepth && g && g.panel === 'זכוכית') return depths.filter(d => d >= series.glassMinDepth);
+  return depths;
+}
+// משקל כבד מותר רק מעומק מסוים (ויז'ן סופרים: 450 ומעלה)
+function hwHeavyAllowed(gi, r) {
+  const s = hwGetSeries(hwGroups[gi].series);
+  return !(s && s.heavyMinDepth && (parseInt(r.dep)||0) < s.heavyMinDepth);
+}
+function hwGroupSetDep(gi, ri, v) {
+  const r = hwGroups[gi].rows[ri];
+  r.dep = parseInt(v);
+  if (!hwHeavyAllowed(gi, r) && r.heavy) { r.heavy = false; }
+  const s = hwGetSeries(hwGroups[gi].series);
+  if (s && s.heavyMinDepth) hwRenderGroups();
+}
+
 function hwGroupRowHTML(gi, ri, r, backs, showGal, depths, isWoodOnly) {
   // depth — dropdown
   const depOpts = depths.map(d => `<option value="${d}" ${String(r.dep)===String(d)?'selected':''}>${d}</option>`).join('');
   const depCell = `<select style="font-size:13px;padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-family:inherit"
-    onchange="hwGroups[${gi}].rows[${ri}].dep=parseInt(this.value)">${depOpts}</select>`;
+    onchange="hwGroupSetDep(${gi},${ri},this.value)">${depOpts}</select>`;
 
   // back — dropdown or free
   const backOpts = backs.map(b => `<option value="${b}" ${String(r.back)===String(b)?'selected':''}>${b}</option>`).join('');
@@ -2154,7 +2173,7 @@ function hwGroupRowHTML(gi, ri, r, backs, showGal, depths, isWoodOnly) {
     ? `<td style="text-align:center"><input type="checkbox" ${r.gallery?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].gallery=this.checked"></td>` : '';
   const backTd = isWoodOnly ? '' : `<td>${backCell}</td>`;
   const heavyInnerTd = isWoodOnly ? '' : `
-    <td style="text-align:center"><input type="checkbox" ${r.heavy?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].heavy=this.checked"></td>
+    <td style="text-align:center"><input type="checkbox" ${r.heavy?'checked':''} ${hwHeavyAllowed(gi, r)?'':'disabled'} onchange="hwGroups[${gi}].rows[${ri}].heavy=this.checked"></td>
     <td style="text-align:center"><input type="checkbox" ${r.inner?'checked':''} onchange="hwGroups[${gi}].rows[${ri}].inner=this.checked"></td>`;
 
   return `<tr>
@@ -2180,7 +2199,14 @@ function hwGroupSetSeries(gi, sid) {
   hwGroups[gi].panel = '';
   hwRenderGroups();
 }
-function hwGroupSetPanel(gi, p) { hwGroups[gi].panel = p; hwRenderGroups(); }
+function hwGroupSetPanel(gi, p) {
+  hwGroups[gi].panel = p;
+  const s = hwGetSeries(hwGroups[gi].series);
+  if (s && s.glassMinDepth && p === 'זכוכית') {
+    (hwGroups[gi].rows||[]).forEach(r => { if ((parseInt(r.dep)||0) < s.glassMinDepth) r.dep = s.glassMinDepth; });
+  }
+  hwRenderGroups();
+}
 function hwGroupSetColor(gi, c) { hwGroups[gi].color = c; hwRenderGroups(); }
 function hwGroupAddRow(gi) {
   const s = hwGetSeries(hwGroups[gi].series);
@@ -3058,7 +3084,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=22');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=23');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
