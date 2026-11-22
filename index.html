@@ -2451,21 +2451,42 @@ function hwRenderOutput(){
     <button class="hw-copy-btn" onclick="hwCopy()">העתק לוואטסאפ 📋</button>`;
 }
 
+// כל קבוצות המגירות של רהיט (תמיכה גם בפורמט הישן עם קבוצה אחת)
+function hwDataGroups(d){
+  if(!d)return [];
+  if(d.groups&&d.groups.length)return d.groups;
+  return [{series:d.series||d.company,color:d.color,panel:d.panel||'',rows:d.rows||[],dnote:d.dnote||''}];
+}
+// מסילות בלבד (מובנטו, InnoTech): בלי צבע ובלי גב
+function hwIsWoodOnly(g){const s=hwGetSeries(g.series);return !!(s&&s.woodOnly);}
+// כותרת מגירות: חברה וסדרה, דופן רק בסדרה עם דופן, צבע רק בסדרה שאינה מסילות בלבד
+function hwGroupLabel(g){
+  const s=hwGetSeries(g.series);
+  const parts=['מגירות',HW_COMP_LABEL[g.series]||g.series||''];
+  if(s&&s.panel&&s.panel.length&&g.panel)parts.push(g.panel);
+  if(!(s&&s.woodOnly)&&g.color)parts.push(g.color);
+  return parts.join(' ');
+}
+
 function hwBuildSupplier(ids,projName){
   const data=hwData[hwProjectId]||{};
   const lines=[`*הזמנת פרזול — ${projName}*`,''];
   const buckets={};
   ids.forEach(id=>{
     const d=data[id];if(!d)return;
-    const cl=HW_COMP_LABEL[d.company]||d.company;
-    const grp=`${cl}__${d.color}`;
-    if(!buckets[grp])buckets[grp]={label:`מגירות ${cl} ${d.color}`,rows:{}};
-    d.rows.forEach(r=>{
-      if(!r.qty)return;
-      const key=`${r.dep}__${r.back}__${r.inner?1:0}__${r.gallery?1:0}`;
-      if(!buckets[grp].rows[key])buckets[grp].rows[key]={dep:r.dep,back:r.back,inner:r.inner,gallery:r.gallery,heavy:0,normal:0};
-      if(r.heavy)buckets[grp].rows[key].heavy+=r.qty;
-      else buckets[grp].rows[key].normal+=r.qty;
+    hwDataGroups(d).forEach(g=>{
+      const label=hwGroupLabel(g);
+      if(!(g.rows||[]).some(r=>r.qty>0))return;
+      if(!buckets[label])buckets[label]={label,rows:{}};
+      const noBack=hwIsWoodOnly(g);
+      g.rows.forEach(r0=>{
+        if(!r0.qty)return;
+        const r=noBack?{...r0,back:''}:r0;
+        const key=`${r.dep}__${r.back}__${r.inner?1:0}__${r.gallery?1:0}`;
+        if(!buckets[label].rows[key])buckets[label].rows[key]={dep:r.dep,back:r.back,inner:r.inner,gallery:r.gallery,heavy:0,normal:0};
+        if(r.heavy)buckets[label].rows[key].heavy+=r.qty;
+        else buckets[label].rows[key].normal+=r.qty;
+      });
     });
   });
   Object.values(buckets).forEach(b=>{
@@ -2499,24 +2520,24 @@ function hwBuildWorkshop(ids,projName){
   ids.forEach(id=>{
     const d=data[id];if(!d)return;
     const f=hwFurnList.find(x=>x.id===id);
-    const hasRows=d.rows&&d.rows.some(r=>r.qty>0);
-    if(!hasRows&&!d.extra)return;
+    const groups=hwDataGroups(d).filter(g=>(g.rows||[]).some(r=>r.qty>0));
+    if(!groups.length&&!d.extra)return;
     lines.push(`*${f.code} ${f.name}*`);
-    if(hasRows){
-      const cl=HW_COMP_LABEL[d.company]||d.company;
-      lines.push(`מגירות ${cl} ${d.color}:`);
-      d.rows.forEach(r=>{
+    groups.forEach(g=>{
+      lines.push(`${hwGroupLabel(g)}:`);
+      const noBack=hwIsWoodOnly(g);
+      g.rows.forEach(r=>{
         if(!r.qty)return;
         const parts=[`${r.qty}`];
         if(r.inner)parts.push('פנימית');
         parts.push(`עומק ${r.dep}`);
-        if(r.back)parts.push(`גב ${r.back}`);
+        if(r.back&&!noBack)parts.push(`גב ${r.back}`);
         if(r.heavy)parts.push('*כבד*');
         if(r.gallery)parts.push('+ גלריה');
         lines.push(`• ${parts.join(' ')}`);
       });
-      if(d.dnote)lines.push(`הערה: ${d.dnote}`);
-    }
+      if(g.dnote)lines.push(`הערה: ${g.dnote}`);
+    });
     if(d.extra){d.extra.split('\n').forEach(l=>{if(l.trim())lines.push(`• ${l.trim()}`);});}
     lines.push('');
   });
@@ -3084,7 +3105,7 @@ let swRegistration = null;
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=23');
+    swRegistration = await navigator.serviceWorker.register('/nagaria/sw.js?v=24');
 
     // בדוק עדכון בכל טעינה
     swRegistration.addEventListener('updatefound', () => {
